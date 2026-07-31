@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Milky Way Globular Cluster Atlas</title>
+<style>
+:root{
+  --bg:#05070f; --bg2:#0a0f1f; --panel:rgba(13,19,38,.82); --panel2:rgba(20,28,52,.9);
+  --line:rgba(120,160,255,.14); --line2:rgba(120,160,255,.28);
+  --txt:#dfe7ff; --dim:#8593bd; --faint:#55608a;
+  --acc:#7fd4ff; --acc2:#4f8dff; --warm:#ffb454; --poor:#5b8cff; --rich:#ff5d47;
+  --mono:"SF Mono","JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--txt);
+  font-family:-apple-system,"Inter","Segoe UI",Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased}
+#scene{position:fixed;inset:0;display:block;cursor:grab}
+#scene:active{cursor:grabbing}
+
+/* ---------- 顶部标题 ---------- */
+#brand{position:fixed;top:22px;left:26px;z-index:20;pointer-events:none;user-select:none}
+#brand .eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:.34em;
+  color:var(--acc);text-transform:uppercase;display:flex;align-items:center;gap:8px}
+#brand .eyebrow::before{content:"";width:26px;height:1px;background:var(--acc);display:inline-block}
+#brand h1{font-size:21px;font-weight:800;letter-spacing:.02em;margin-top:6px;
+  background:linear-gradient(100deg,#fff 20%,var(--acc) 70%,var(--acc2));
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+#brand .sub{font-family:var(--mono);font-size:10.5px;color:var(--dim);margin-top:4px;letter-spacing:.05em}
+#brand .sub b{color:var(--warm);font-weight:600}
+
+/* ---------- 左侧控制面板 ---------- */
+#panel{position:fixed;top:110px;left:22px;z-index:20;width:250px;
+  background:var(--panel);border:1px solid var(--line);border-radius:14px;
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  box-shadow:0 12px 40px rgba(0,0,0,.5);overflow:hidden;
+  transition:transform .35s cubic-bezier(.4,0,.2,1),opacity .35s}
+#panel.hidden{transform:translateX(-290px);opacity:0}
+.p-head{display:flex;align-items:center;justify-content:space-between;
+  padding:13px 16px;border-bottom:1px solid var(--line);cursor:pointer}
+.p-head span{font-family:var(--mono);font-size:10px;letter-spacing:.28em;color:var(--acc);text-transform:uppercase}
+.p-body{padding:14px 16px 16px;max-height:calc(100vh - 200px);overflow-y:auto}
+.p-body::-webkit-scrollbar{width:6px}
+.p-body::-webkit-scrollbar-thumb{background:var(--line2);border-radius:3px}
+
+.f-group{margin-bottom:16px}
+.f-label{font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;color:var(--dim);
+  text-transform:uppercase;margin-bottom:8px;display:flex;justify-content:space-between}
+.f-label output{color:var(--acc);letter-spacing:0;font-weight:600}
+input[type=range]{width:100%;-webkit-appearance:none;appearance:none;height:3px;border-radius:2px;
+  background:linear-gradient(90deg,var(--acc2),var(--acc));outline:none;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:13px;height:13px;
+  border-radius:50%;background:#fff;border:2px solid var(--acc2);cursor:pointer;
+  box-shadow:0 0 8px var(--acc2);transition:transform .15s}
+input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.25)}
+input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;
+  background:#fff;border:2px solid var(--acc2);cursor:pointer}
+
+.seg{display:flex;gap:5px;flex-wrap:wrap}
+.seg button{flex:1;min-width:0;padding:6px 4px;font-family:var(--mono);font-size:9.5px;
+  letter-spacing:.03em;background:rgba(120,160,255,.07);color:var(--dim);
+  border:1px solid var(--line);border-radius:7px;cursor:pointer;transition:all .18s;white-space:nowrap}
+.seg button:hover{background:rgba(120,160,255,.16);color:var(--txt)}
+.seg button.on{background:var(--acc2);color:#fff;border-color:var(--acc2);
+  box-shadow:0 0 12px rgba(79,141,255,.5)}
+
+.tgl{display:flex;align-items:center;justify-content:space-between;padding:7px 0;cursor:pointer}
+.tgl span{font-size:12.5px;color:var(--txt)}
+.sw{width:34px;height:18px;border-radius:10px;background:rgba(120,160,255,.18);
+  position:relative;transition:background .2s;flex-shrink:0}
+.sw::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;
+  background:#8aa0d0;transition:all .2s}
+.tgl input{display:none}
+.tgl input:checked + .sw{background:var(--acc2)}
+.tgl input:checked + .sw::after{left:18px;background:#fff}
+
+/* ---------- 搜索 ---------- */
+#search{position:fixed;top:22px;right:26px;z-index:20;width:230px}
+#search input{width:100%;padding:10px 14px 10px 36px;background:var(--panel);
+  border:1px solid var(--line);border-radius:11px;color:var(--txt);font-size:13px;
+  font-family:var(--mono);outline:none;backdrop-filter:blur(14px);transition:border-color .2s}
+#search input:focus{border-color:var(--acc2)}
+#search input::placeholder{color:var(--faint)}
+#search .ico{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--dim);pointer-events:none}
+#sugg{margin-top:6px;background:var(--panel2);border:1px solid var(--line);border-radius:11px;
+  overflow:hidden;display:none;backdrop-filter:blur(14px)}
+#sugg.show{display:block}
+#sugg .it{padding:9px 14px;font-size:12.5px;cursor:pointer;display:flex;justify-content:space-between;
+  border-bottom:1px solid var(--line)}
+#sugg .it:last-child{border-bottom:none}
+#sugg .it:hover{background:rgba(120,160,255,.14)}
+#sugg .it small{color:var(--faint);font-family:var(--mono)}
+
+/* ---------- 信息面板 ---------- */
+#info{position:fixed;bottom:24px;left:22px;z-index:25;width:340px;
+  background:var(--panel2);border:1px solid var(--line2);border-radius:16px;
+  backdrop-filter:blur(18px);box-shadow:0 16px 50px rgba(0,0,0,.6);
+  transform:translateY(30px);opacity:0;pointer-events:none;
+  transition:transform .35s cubic-bezier(.34,1.4,.5,1),opacity .3s}
+#info.show{transform:translateY(0);opacity:1;pointer-events:auto}
+.i-head{padding:15px 18px 12px;border-bottom:1px solid var(--line);position:relative}
+.i-head .tag{font-family:var(--mono);font-size:9px;letter-spacing:.24em;color:var(--acc);text-transform:uppercase}
+.i-head h2{font-size:19px;font-weight:800;margin-top:3px;letter-spacing:.01em}
+.i-head .alias{font-family:var(--mono);font-size:11px;color:var(--dim);margin-top:1px}
+#i-close{position:absolute;top:12px;right:14px;width:26px;height:26px;border-radius:8px;
+  background:rgba(120,160,255,.1);border:1px solid var(--line);color:var(--dim);
+  cursor:pointer;font-size:15px;line-height:1;display:flex;align-items:center;justify-content:center}
+#i-close:hover{background:var(--rich);color:#fff;border-color:var(--rich)}
+.i-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);max-height:42vh;overflow-y:auto}
+.i-cell{background:var(--bg2);padding:9px 14px}
+.i-cell .k{font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;color:var(--faint);text-transform:uppercase}
+.i-cell .v{font-family:var(--mono);font-size:14px;color:var(--txt);margin-top:2px;font-weight:600}
+.i-cell .v small{font-size:9.5px;color:var(--dim);font-weight:400}
+.i-foot{padding:10px 18px;border-top:1px solid var(--line);display:flex;gap:8px}
+.i-foot button{flex:1;padding:7px;font-family:var(--mono);font-size:10px;letter-spacing:.05em;
+  background:rgba(120,160,255,.1);color:var(--acc);border:1px solid var(--line);border-radius:8px;cursor:pointer}
+.i-foot button:hover{background:var(--acc2);color:#fff}
+.i-foot button.on{background:var(--acc2);color:#fff}
+
+/* ---------- 底部状态栏 / 图例 ---------- */
+#hud{position:fixed;bottom:24px;right:26px;z-index:20;text-align:right;pointer-events:none}
+#legend{background:var(--panel);border:1px solid var(--line);border-radius:11px;
+  padding:10px 14px;backdrop-filter:blur(12px);pointer-events:auto}
+#legend .ttl{font-family:var(--mono);font-size:9px;letter-spacing:.2em;color:var(--dim);
+  text-transform:uppercase;margin-bottom:7px}
+#legend .bar{height:8px;width:190px;border-radius:4px;
+  background:linear-gradient(90deg,#ff5d47,#ffb454,#f0e6c8,#9fc0ff,#5b8cff)}
+#legend .lbl{display:flex;justify-content:space-between;font-family:var(--mono);
+  font-size:8.5px;color:var(--faint);margin-top:4px}
+#count{font-family:var(--mono);font-size:11px;color:var(--dim);margin-top:9px}
+#count b{color:var(--acc);font-weight:600}
+
+/* ---------- 工具按钮 ---------- */
+#tools{position:fixed;bottom:110px;right:26px;z-index:20;display:flex;flex-direction:column;gap:7px}
+#tools button{width:40px;height:40px;border-radius:11px;background:var(--panel);
+  border:1px solid var(--line);color:var(--dim);cursor:pointer;font-size:17px;
+  backdrop-filter:blur(12px);transition:all .2s;display:flex;align-items:center;justify-content:center}
+#tools button:hover{color:var(--acc);border-color:var(--acc2);transform:translateY(-2px)}
+#tools button.on{color:#fff;background:var(--acc2);border-color:var(--acc2)}
+
+/* ---------- 加载屏 ---------- */
+#loader{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;
+  flex-direction:column;align-items:center;justify-content:center;gap:22px;transition:opacity .8s}
+#loader.done{opacity:0;pointer-events:none}
+#loader .ring{width:64px;height:64px;border-radius:50%;border:2px solid var(--line2);
+  border-top-color:var(--acc);animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loader .t{font-family:var(--mono);font-size:11px;letter-spacing:.3em;color:var(--dim);text-transform:uppercase}
+
+/* ---------- 提示 ---------- */
+#tip{position:fixed;z-index:30;pointer-events:none;background:rgba(8,12,26,.95);
+  border:1px solid var(--line2);border-radius:8px;padding:5px 10px;font-family:var(--mono);
+  font-size:11px;color:var(--txt);opacity:0;transition:opacity .15s;white-space:nowrap}
+#hint{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:15;
+  font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--faint);
+  text-transform:uppercase;pointer-events:none;transition:opacity 1s}
+@media (max-width:760px){
+  #panel{width:210px;top:100px} #search{width:170px} #info{width:calc(100vw - 40px);left:20px}
+  #brand h1{font-size:17px} #hint{display:none}
+}
+</style>
+</head>
+<body>
+
+<div id="loader"><div class="ring"></div><div class="t">Assembling the halo…</div></div>
+
+<canvas id="scene"></canvas>
+
+<div id="brand">
+  <div class="eyebrow">Galactic Halo Survey</div>
+  <h1>Milky Way Globular Cluster Atlas</h1>
+  <div class="sub"><b id="n-cl">—</b> clusters &nbsp;·&nbsp; 6-D phase space &nbsp;·&nbsp; orbits in MWPotential2014</div>
+</div>
+
+<div id="panel">
+  <div class="p-head" id="p-collapse"><span>Controls</span><span style="color:var(--dim)">▾</span></div>
+  <div class="p-body">
+    <div class="f-group">
+      <div class="f-label">Colour by</div>
+      <div class="seg" id="seg-color">
+        <button data-v="feh" class="on">[Fe/H]</button>
+        <button data-v="mv">Lum</button>
+        <button data-v="mass">Mass</button>
+        <button data-v="ecc">Ecc</button>
+        <button data-v="pop">Pop</button>
+      </div>
+    </div>
+    <div class="f-group">
+      <div class="f-label">[Fe/H] range <output id="o-feh">all</output></div>
+      <input type="range" id="r-feh-lo" min="-2.6" max="0.3" step="0.05" value="-2.6">
+      <input type="range" id="r-feh-hi" min="-2.6" max="0.3" step="0.05" value="0.3" style="margin-top:5px">
+    </div>
+    <div class="f-group">
+      <div class="f-label">Galactocentric R <output id="o-rgc">≤ 130</output></div>
+      <input type="range" id="r-rgc" min="1" max="130" step="1" value="130">
+    </div>
+    <div class="f-group">
+      <div class="f-label">Min luminosity <output id="o-mv">all</output></div>
+      <input type="range" id="r-mv" min="-11" max="-3" step="0.2" value="-3">
+    </div>
+    <div class="f-group">
+      <label class="tgl"><span>Show orbits</span><input type="checkbox" id="t-orbit"><span class="sw"></span></label>
+      <label class="tgl"><span>Spiral arms</span><input type="checkbox" id="t-arms" checked><span class="sw"></span></label>
+      <label class="tgl"><span>Stellar streams</span><input type="checkbox" id="t-streams"><span class="sw"></span></label>
+      <label class="tgl"><span>Galactic disc</span><input type="checkbox" id="t-disc" checked><span class="sw"></span></label>
+      <label class="tgl"><span>Reference rings</span><input type="checkbox" id="t-ring" checked><span class="sw"></span></label>
+      <label class="tgl"><span>Labels</span><input type="checkbox" id="t-label"><span class="sw"></span></label>
+      <label class="tgl"><span>Bloom glow</span><input type="checkbox" id="t-bloom" checked><span class="sw"></span></label>
+    </div>
+    <div class="f-group">
+      <div class="f-label">View</div>
+      <div class="seg" id="seg-view">
+        <button data-v="home">Home</button>
+        <button data-v="face">Face-on</button>
+        <button data-v="edge">Edge-on</button>
+        <button data-v="sun">From Sun</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="search">
+  <span class="ico">⌕</span>
+  <input id="q" type="text" placeholder="Search cluster… ( / )" autocomplete="off" spellcheck="false">
+  <div id="sugg"></div>
+</div>
+
+<div id="tools">
+  <button id="btn-panel" title="Toggle panel">☰</button>
+  <button id="btn-rot" title="Auto-rotate">⟳</button>
+  <button id="btn-full" title="Fullscreen">⛶</button>
+</div>
+
+<div id="info">
+  <div class="i-head">
+    <div class="tag">Globular Cluster</div>
+    <h2 id="i-name">—</h2>
+    <div class="alias" id="i-alias">—</div>
+    <button id="i-close">×</button>
+  </div>
+  <div class="i-grid" id="i-grid"></div>
+  <div class="i-foot">
+    <button id="i-orbit">Toggle orbit</button>
+    <button id="i-goto">Fly to</button>
+  </div>
+</div>
+
+<div id="hud">
+  <div id="legend">
+    <div class="ttl" id="leg-ttl">Metallicity [Fe/H]</div>
+    <div class="bar" id="leg-bar"></div>
+    <div class="lbl"><span id="leg-lo">−2.4</span><span id="leg-mid">−1.3</span><span id="leg-hi">−0.3</span></div>
+  </div>
+  <div id="count">showing <b id="n-vis">—</b> clusters</div>
+</div>
+
+<div id="tip"></div>
+<div id="hint">drag to orbit &nbsp;·&nbsp; scroll to zoom &nbsp;·&nbsp; click a cluster</div>
+
+<script src="gc_data.js"></script>
+<script src="streams_data.js"></script>
+<script src="assets/three.min.js"></script>
+<script src="assets/OrbitControls.classic.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
