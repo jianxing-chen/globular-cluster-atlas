@@ -1,235 +1,241 @@
 # 🌌 Milky Way Globular Cluster Atlas
-# 银河系球状星团大星表 · 轨道 · 恒星流 · 3D 交互可视化
 
-一个**数据精确、完全本地、可交互**的银河系球状星团综合项目：从国际权威天文数据库
-(CDS VizieR + galstreams) 抓取多个权威星表，交叉证认合并成统一主星表，在标准银河
-引力势中做轨道积分，并以出版级静态图 + **自包含 3D Web 应用**两种形式呈现。
+**English** | [中文](README.zh-CN.md)
 
-> A precise, fully-offline, interactive atlas of **Milky Way globular clusters**:
-> multi-survey catalog cross-match (Harris / Vasiliev & Baumgardt / Baumgardt & Hilker /
-> Bica), **orbit integration** in MWPotential2014, **124 stellar streams** (galstreams),
-> plus a **scientific spiral-arm & bar model** — all rendered in a zero-install,
-> double-click **3D web explorer** (Three.js).
+> An interactive atlas of **176 Milky Way globular clusters** — multi-survey catalog cross-match,
+> **orbit integration** in MWPotential2014 (135 smooth orbits), **124 stellar streams** (galstreams),
+> and a **scientific spiral-arm & bar model**, all rendered in a zero-install, double-click
+> **3D web explorer** (Three.js). Fully offline, fully self-contained.
 
-![3D 可视化](figures/viz_screenshot_home.png)
+[![Live Demo](https://img.shields.io/badge/🔴_Live_Demo-jianxing--chen.github.io-4f8dff)](https://jianxing-chen.github.io/globular-cluster-atlas/)
+[![License](https://img.shields.io/badge/License-MIT-37e0d8)](LICENSE)
+[![Stars](https://img.shields.io/github/stars/jianxing-chen/globular-cluster-atlas?style=social)](https://github.com/jianxing-chen/globular-cluster-atlas)
 
-## 🔴 在线演示 Live Demo
-
-**https://jianxing-chen.github.io/globular-cluster-atlas/viz/**
-
-打开即玩，无需安装（GitHub Pages 托管，完全静态）。
+![3D explorer](figures/viz_screenshot_home.png)
 
 ---
 
-## ✨ 亮点 Highlights
+## 🔴 Live Demo
 
-| 项目 | 内容 |
-|------|------|
-| **统一主星表 Master catalog** | **176** 个球状星团，多源交叉证认合并 |
-| **6D 相空间** | **135** 个星团拥有完整 位置+自行+视向速度 |
-| **轨道积分 Orbits** | **135** 条平滑轨道，MWPotential2014 反推 3 Gyr |
-| **恒星流 Streams** | **124** 条银河恒星流（galstreams），18 条关联祖源星团 |
-| **银河系结构** | 科学仿真的旋臂（4 主臂+本地臂+Outer）+ 中心棒 + 核球 |
-| **静态科学图** | 6 张出版级 PNG |
-| **3D Web 应用** | 完全本地、双击即开、零安装、零联网、~120 fps |
+| Entry | URL |
+|-------|-----|
+| **Project portal** (landing page) | https://jianxing-chen.github.io/globular-cluster-atlas/ |
+| **3D explorer** (direct) | https://jianxing-chen.github.io/globular-cluster-atlas/viz/ |
+
+Hosted on GitHub Pages — fully static, no build step, no backend.
 
 ---
 
-## 🚀 快速开始 Quick Start
+## ✨ Highlights
 
-### 3D 交互可视化（无需任何安装，双击即开）
+| Feature | Content |
+|---------|---------|
+| **Master catalog** | **176** globular clusters, cross-matched from 4 surveys |
+| **6-D phase space** | **135** clusters with position + proper motion + radial velocity |
+| **Orbit integration** | **135** smooth orbits, MWPotential2014, back-integrated 3 Gyr |
+| **Stellar streams** | **124** Milky Way streams (galstreams), 18 linked to GC progenitors |
+| **Galaxy model** | 4 major spiral arms + Local Arm + Outer arm + central bar + bulge |
+| **Static figures** | 6 publication-quality plots |
+| **3D web app** | offline, zero-install, ~120 fps |
+| **Project portal** | English landing page with figure lightbox & cited sources |
+
+---
+
+## 🚀 Quick Start
+
+### 3D explorer (no installation — just open)
 ```bash
 git clone git@github.com:jianxing-chen/globular-cluster-atlas.git
 cd globular-cluster-atlas
-# 用浏览器打开 viz/index.html 即可（双击 / open / 拖入浏览器）
 open viz/index.html        # macOS
 # start viz\index.html     # Windows
 # xdg-open viz/index.html  # Linux
 ```
-> **任何现代浏览器（Chrome / Edge / Firefox / Safari）双击即可运行**。
-> 应用采用纯经典脚本（无 ES module、无网络请求、无 `file://` 限制），完全离线自包含。
-> 也可部署到任意静态托管（含 GitHub Pages）——入口即 `viz/index.html`，无需构建。
+> Works in any modern browser (Chrome / Edge / Firefox / Safari) straight from `file://` —
+> plain classic scripts, no ES modules, no network requests, fully offline.
 
-**交互 Interactions：**
-- **拖拽** 旋转 · **滚轮** 缩放 · **悬停星团** 点亮并浮现关键信息卡 · **点击星团** 弹出完整信息卡
-- **`/`** 聚焦搜索框，输入名称（如 `47 Tuc`、`omega Cen`、`M13`）→ 回车飞过去
-- 左侧面板：5 种着色（金属丰度/光度/质量/偏心率/星族）、金属丰度/银心距/光度筛选、
-  轨道开关、**旋臂结构**、**恒星流**、银河盘、参考环、标签、Bloom、4 种视角预设
-- 信息卡：点击即显示该星团轨道（平滑样条曲线，金色高亮）；
-  **Center view** 飞向它，**Full data** 弹出完整多源数据详情
-  （位置/测光/金属丰度/Gaia 运动学/结构动力学/轨道参数，分组表格）
+### Controls
+- **Drag** to rotate · **scroll** to zoom · **click a cluster** for a full data card
+- **`/`** focuses the search box — type a name (`47 Tuc`, `omega Cen`, `M13`) → Enter to fly there
+- **`R`** or the ⟲ button resets view &amp; filters · **`Esc`** closes the info card / deselects
+- Left panel: 5 colour codings (metallicity / luminosity / mass / eccentricity / population),
+  metallicity / galactocentric-radius / luminosity filters, toggles for **orbits**, **spiral arms**,
+  **stellar streams**, disc, rings, labels, bloom, and 4 view presets (Home / Face-on / Edge-on / From-Sun)
+- Info card: **Toggle orbit** shows the cluster's smooth orbit; **Fly to** zooms to it
 
-### 复现数据流水线 Reproduce the pipeline（可选 Optional）
+### Reproduce the data pipeline (optional)
 ```bash
 cd scripts
-python3 download_catalogs.py    # 1. 从 VizieR 下载原始星表
-python3 parse_and_validate.py   # 2. 解析 + 校验
-python3 build_master.py         # 3. 合并成统一主星表
-python3 integrate_orbits.py     # 4. 轨道积分 (MWPotential2014)
-python3 process_streams.py      # 5. 恒星流 (需先 clone galstreams 到 /tmp/galstreams)
-python3 make_figures.py         # 6. 静态图
-python3 export_viz_data.py      # 7. 打包给 Web 应用
+python3 download_catalogs.py    # 1 fetch catalogs from VizieR
+python3 parse_and_validate.py   # 2 parse + validate
+python3 build_master.py         # 3 merge master catalog
+python3 integrate_orbits.py     # 4 orbit integration (MWPotential2014)
+python3 process_streams.py      # 5 stellar streams (clone galstreams to /tmp/galstreams first)
+python3 make_figures.py         # 6 static figures
+python3 export_viz_data.py      # 7 bundle data for the web app
 ```
-依赖：`numpy pandas matplotlib scipy`（轨道/绘图无需 astropy/galpy，全自实现）。
+Dependencies: `numpy pandas matplotlib scipy` (orbits/figures are self-implemented; no astropy/galpy needed).
 
 ---
 
-## 📊 数据来源 Data Sources（全部经 VizieR 官方目录号核实）
+## 📊 Data Sources
 
-| 星表 | VizieR 目录 | 内容 | 行数 |
-|------|------------|------|------|
-| **Harris 1996/2010** | `VII/202/catalog` | 坐标/距离/光度/[Fe/H]/E(B-V)/视向速度/结构/弛豫时间/密度（38 列） | 147 |
-| **Vasiliev & Baumgardt 2021** | `J/MNRAS/505/5978/tablea1` | Gaia EDR3 自行 + 视差（→距离） | 170 |
-| **Baumgardt & Hilker 2018** | `J/MNRAS/478/1520/table2` | 质量/质光比/半光半径/弛豫时间/逃逸速度/速度弥散 | 112 |
-| **Bica et al. 2019** | `J/AJ/157/12/table3` | 银河系星团与候选总表（含新发现球状星团候选） | 10978 |
-| **galstreams (Mateu 2023)** | `github.com/cmateu/galstreams` | 银河恒星流 6D 轨迹汇编（GD-1/Pal5/Orphan-Chenab 等） | 124 条流 |
+All catalogs verified against their official CDS VizieR identifiers.
 
-**合并策略**：名称规范化（别名映射 Messier/常用名 → Harris 主键）+ 坐标交叉匹配
-（容差 3′）。距离优先级 `Baumgardt&Hilker > Gaia 视差 > Harris`；坐标/自行取 Gaia EDR3；
-金属丰度/消光/颜色取 Harris；质量/结构取 Baumgardt & Hilker。
+| Catalog | VizieR ID | Content | Rows |
+|---------|-----------|---------|------|
+| [Harris 1996/2010](https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=VII/202) | `VII/202/catalog` | Coordinates, distances, photometry, [Fe/H], E(B−V), RV, structure, relaxation, densities (38 cols) | 147 |
+| [Vasiliev & Baumgardt 2021](https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=J/MNRAS/505/5978) | `J/MNRAS/505/5978/tablea1` | Gaia EDR3 proper motions + parallaxes (→ distances) | 170 |
+| [Baumgardt & Hilker 2018](https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=J/MNRAS/478/1520) | `J/MNRAS/478/1520/table2` | Masses, M/L, half-light radii, relaxation, escape velocities, σ₀ | 112 |
+| [Bica et al. 2019](https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=J/AJ/157/12) | `J/AJ/157/12/table3` | Milky Way clusters & candidates (incl. new GC candidates) | 10978 |
+| [galstreams (Mateu 2023)](https://github.com/cmateu/galstreams) | `github.com/cmateu/galstreams` | Stellar-stream 6-D tracks (GD-1, Pal 5, Orphan-Chenab, …) | 124 streams |
 
-**主星表字段覆盖**（176 个星团）：
-有距离 170 · 有自行 170 · 有质量 118 · 有金属丰度 139 · 有视向速度 141 · 完整 6D **135**。
+**Merge strategy** — names normalized (aliases → Harris key) + coordinate cross-match (3″).
+Priority: distance `Baumgardt&Hilker > Gaia parallax > Harris`; coordinates/PM from Gaia EDR3;
+metallicity/reddening/colours from Harris; mass/structure from Baumgardt & Hilker.
 
----
-
-## 🌠 银河系结构仿真 Galactic Model（科学参数）
-
-3D 场景中的银河系盘并非示意，而是按**权威文献参数**仿真绘制（细密的点状粒子）：
-
-- **旋臂 Spiral arms**：4 条主臂（Scutum-Centaurus、Sagittarius-Carina、Perseus、
-  Norma-Outer）+ Outer 臂 + 本地臂（猎户支臂），采用**对数螺旋**模型
-  `R(β)=R_ref·exp(−(β−β_ref)·tan ψ)`，参数取自 **Reid et al. 2019**（ApJ 885, 131，
-  VLBI 视差实测）与 **Vallée 2017** 综述，螺距角 8–16°。太阳位于本地臂（Orion Spur）。
-
-  > **关于旋臂模型选择**：本项目采用 **Reid+2019 逐臂实测模型**（VLBI 直接测量恒星形成区
-  > 三角视差，各臂独立参数、不对称、有分支/扭结），而非科普插图常见的 **Vallée 2017 4 臂
-  > 对称理想模型**（统一 pitch=13°、90° 等分）。前者科学更准确——真实银河系旋臂本就不完美
-  > 对称；后者视觉更规则但属理想化简化。两者对比见 `figures/arm_models_comparison.png`。
-- **中心棒 Bar**：半长 5 kpc、相对太阳-银心连线偏 28°（**Wegg et al. 2015**），
-  叠加半径约 2 kpc 的花生状核球（b/p bulge）。
-- **HII 亮斑**：沿主臂点缀的年轻恒星形成区亮斑。
-
-### 恒星流 Stellar Streams（galstreams）
-叠加了 **124 条银河恒星流**轨迹（Mateu 2023）。恒星流是球状星团/矮星系被银河系潮汐
-撕裂的遗迹，与（被吸积的）球状星团物理上同源，共同讲述银河系的并合历史。
-- **青色点带** = 一般恒星流；**金色点带** = 祖源为球状星团的流（Pal5、
-  ω Cen-Fimbulthul、NGC3201-Gjoll 等，已自动关联到主星表对应星团）
-- 散点密度渲染：平滑骨架加密采样 + 横向高斯散布模拟流宽
-- 与球状星团/轨道严格同一参考系（同一套 IAU1958 银道变换）
+**Field coverage** (176 clusters): distance 170 · PM 170 · mass 118 · [Fe/H] 139 · RV 141 · **full 6-D 135**.
 
 ---
 
-## 🔬 轨道积分 Orbit Integration
+## 🌠 Galaxy Model
 
-- **引力势**：`MWPotential2014`（Bovy 2015）= Hernquist 核球 + Miyamoto-Nagai 盘 + NFW 晕，
-  数值标定至 v_c(R☉)=238 km/s。
-- **坐标变换**：自实现 IAU 1958 银道变换（经 47 Tuc 校验），日心→银心右手笛卡尔。
-- **积分器**：`scipy DOP853`（8 阶 Runge-Kutta），反推 3 Gyr，rtol=1e-7。
-- **太阳参数**：R☉=8.275 kpc，v☉=(11.1, 251.24, 7.25) km/s，z☉=20.8 pc。
-- **输出**：每星团的平滑轨道轨迹 + R_peri / R_apo / 偏心率 / z_max / 顺逆行。
+The disc is not a schematic — it is a science-parameterized particle simulation:
+
+- **Spiral arms**: 4 major arms (Scutum-Centaurus, Sagittarius-Carina, Perseus, Norma-Outer)
+  + Outer arm + Local Arm (Orion Spur), log-spiral `R(β)=R_ref·exp(−(β−β_ref)·tan ψ)`,
+  pitch 8–16° — parameters from **Reid et al. 2019** (VLBI parallaxes) & **Vallée 2017**.
+- **Central bar**: half-length 5 kpc, tilted 28° (**Wegg et al. 2015**) + boxy/peanut bulge.
+- **HII knots**: young star-forming regions sprinkled along the major arms.
+
+### Stellar streams (galstreams)
+**124** stream tracks (Mateu 2023) — the tidal debris of globular clusters & dwarf galaxies,
+physically kin to the accreted GCs, together telling the Galaxy's merger history.
+- **Teal** = general streams · **gold** = streams with a GC progenitor (Pal 5, ω Cen-Fimbulthul,
+  NGC 3201-Gjöll, … auto-linked to the master catalog)
+- Rendered as point-density ribbons (smoothed spine + Gaussian cross-spread)
 
 ---
 
-## ✅ 数据精确性校验 Validation
+## 🔬 Orbit Integration
 
-- **行数**：各表行数与 VizieR 完全一致（147 / 170 / 112 / 10978）。
-- **坐标一致性**：Harris vs Gaia EDR3 角距离中位数 **0.048′**（≈3″）。
-- **轨道自检**：太阳处圆周速度 **238.0 km/s**；47 Tuc 银道坐标 l=305.89°, b=−44.89°
-  （文献 305.90, −44.89）；轨道起点与主星表坐标偏差 ≈0.02 kpc。
-- **著名星团抽查**（与文献一致）：
+- **Potential**: `MWPotential2014` (Bovy 2015) = Hernquist bulge + Miyamoto-Nagai disk + NFW halo,
+  calibrated to v_c(R☉) = 238 km/s.
+- **Transform**: self-implemented IAU 1958 (validated on 47 Tuc), heliocentric → galactocentric.
+- **Integrator**: scipy `DOP853` (8th-order RK), back 3 Gyr, rtol=1e-7.
+- **Sun**: R☉=8.275 kpc, v☉=(11.1, 251.24, 7.25) km/s, z☉=20.8 pc.
+- **Output**: smooth orbit + R_peri / R_apo / eccentricity / z_max / prograde-vs-retrograde.
 
-| 星团 | 距离 | [Fe/H] | 质量 | 偏心率 |
-|------|------|--------|------|--------|
-| 47 Tuc (NGC 104) | 4.41 kpc | −0.76 | 7.79×10⁵ M☉ | 0.12（盘轨道）|
-| ω Cen (NGC 5139) | 5.20 kpc | −1.62 | 3.55×10⁶ M☉（银河系最大）| 0.69 |
+---
+
+## ✅ Validation
+
+| Check | Result | Status |
+|-------|--------|--------|
+| Row counts vs VizieR | 147 / 170 / 112 / 10978 | ✓ match |
+| Coordinate consistency (Harris vs Gaia EDR3) | median offset 0.048′ (≈3″) | ✓ reliable |
+| Circular velocity at the Sun | 238.0 km/s | ✓ MWPotential2014 |
+| 47 Tuc Galactic coordinates | l=305.89°, b=−44.89° | ✓ lit. 305.90, −44.89 |
+| Orbit start vs catalog position | offset ≈ 0.02 kpc | ✓ same frame |
+| Online 3D app (headless test) | 176 GC / 124 streams / 0 JS errors / 120 fps | ✓ pass |
+
+**Spot-check clusters** (match the literature):
+
+| Cluster | Distance | [Fe/H] | Mass | ecc |
+|---------|----------|--------|------|-----|
+| 47 Tuc (NGC 104) | 4.41 kpc | −0.76 | 7.79×10⁵ M☉ | 0.12 (disc) |
+| ω Cen (NGC 5139) | 5.20 kpc | −1.62 | 3.55×10⁶ M☉ (most massive) | 0.69 |
 | M13 (NGC 6205) | 6.60 kpc | −1.54 | 4.53×10⁵ M☉ | 0.81 |
 
 ---
 
-## 📁 目录结构 Structure
+## 🌐 The Project Portal (landing page)
+
+The repo root serves an **English project portal** (`index.html`) with:
+- Hero + stats + 3D preview (click to launch)
+- Catalog field-coverage & spot-check tables
+- **Clickable source cards** linking to each VizieR catalog / GitHub / ADS reference
+- Galaxy-model & orbit summaries, a validation table
+- **Figure gallery with a lightbox** (click to enlarge, ←/→ or Esc to navigate)
+- Reproduction instructions
+
+---
+
+## 📁 Repository Structure
 
 ```
 GlobularClusterAtlas/
-├── viz/                      # ★ 3D Web 应用（完全自包含，双击 index.html 即开）
+├── index.html               # ★ project portal (landing page, EN)
+├── viz/                     # ★ 3D web app (self-contained; open viz/index.html)
 │   ├── index.html
-│   ├── app.js                # Three.js 应用逻辑（纯经典脚本，无 module）
-│   ├── gc_data.js            # 176 球状星团 + 135 轨道
-│   ├── streams_data.js       # 124 恒星流
-│   └── assets/               # three.min.js + OrbitControls（本地化，离线可用）
+│   ├── app.js               # Three.js app (plain classic script, no modules)
+│   ├── gc_data.js           # 176 clusters + 135 orbits
+│   ├── streams_data.js      # 124 stellar streams
+│   └── assets/              # three.min.js + OrbitControls (local, offline)
 ├── data/
-│   ├── raw/                  # VizieR 原始 TSV（4 个星表）
-│   └── processed/            # master_catalog.csv/.json/.pkl, orbits.json
-├── scripts/                  # 7 个数据流水线脚本
-├── figures/                  # 6 张出版级静态图 + Web 应用截图
-├── README.md
-├── LICENSE                   # MIT
+│   ├── raw/                 # raw VizieR TSV (4 catalogs)
+│   └── processed/           # master_catalog.csv/.json/.pkl, orbits.json
+├── scripts/                 # 7 pipeline scripts
+├── figures/                 # 6 static figures + app screenshots
+├── README.md                # this file (English)
+├── README.zh-CN.md          # 中文说明
+├── LICENSE                  # MIT
 └── .gitignore
 ```
 
 ---
 
-## 🖼️ 静态图 Gallery
+## 🖼️ Gallery
 
 | | |
 |---|---|
-| ![全天](figures/01_aitoff_sky.png) | ![银心坐标](figures/02_galactocentric_xyz.png) |
-| 全天 Aitoff 投影 | 银心俯视/侧视 |
-| ![金属丰度](figures/03_metallicity.png) | ![光度质量](figures/04_luminosity_mass.png) |
-| 金属丰度双峰 | 光度/质量函数 |
-| ![轨道相空间](figures/05_orbital_phase.png) | ![结构](figures/06_structure.png) |
-| 轨道相空间 | 质量-半径/动力学 |
+| ![all-sky](figures/01_aitoff_sky.png) | ![galactocentric](figures/02_galactocentric_xyz.png) |
+| All-sky Aitoff (metallicity) | Galactocentric views |
+| ![metallicity](figures/03_metallicity.png) | ![luminosity](figures/04_luminosity_mass.png) |
+| Metallicity bimodality | Luminosity & mass functions |
+| ![orbits](figures/05_orbital_phase.png) | ![structure](figures/06_structure.png) |
+| Orbital phase space | Mass–size / dynamics |
 
-### Web 应用截图 App Screenshots
+### Web app screenshots
 
 | | |
 |---|---|
-| ![Home](figures/viz_screenshot_home.png) | ![旋臂](figures/viz_screenshot_arms.png) |
-| 3/4 视角总览 | 旋臂科学仿真 |
-| ![轨道](figures/viz_screenshot_orbits.png) | ![恒星流](figures/viz_screenshot_streams.png) |
-| 135 条平滑轨道 | 124 条点状恒星流 |
-| ![边视](figures/viz_screenshot_edgeon.png) | ![选中](figures/viz_screenshot_select.png) |
-| Edge-on 盘轨道 | 信息卡 + 搜索 |
+| ![home](figures/viz_screenshot_home.png) | ![arms](figures/viz_screenshot_arms.png) |
+| 3/4 overview | Spiral-arm model |
+| ![orbits](figures/viz_screenshot_orbits.png) | ![streams](figures/viz_screenshot_streams.png) |
+| 135 smooth orbits | 124 stellar streams |
+| ![edge-on](figures/viz_screenshot_edgeon.png) | ![select](figures/viz_screenshot_select.png) |
+| Edge-on disc orbit | Info card + search |
 
 ---
 
-## 🌐 接入个人网页 Embedding
+## ⚠️ Notes & Limitations
 
-本项目是**纯静态、零依赖**站点，可整体作为子目录放进任何静态托管
-（含 [GitHub Pages](https://pages.github.com/)）：
+- Distance/PM/RV uncertainties are not propagated into the orbits (nominal central values).
+- The potential is static & axisymmetric (no bar, arms, or LMC tides).
+- A few clusters (mostly Bica 2019 candidates) lack Gaia 6-D data, hence no orbit.
+- The coordinate transform & potential are independently self-implemented (to avoid astropy/galpy
+  dependency issues); key quantities are validated against literature values.
+- Spiral arms / bar / bulge are science-parameterized particle simulations (illustrative
+  distributions, not star-by-star measurements).
 
-- 直接访问入口即 `viz/index.html`。将本仓库内容放到个人站点的某个子路径
-  （如 `.../projects/globular-cluster-atlas/`），链接到该路径下的 `viz/` 即可。
-- 因为不使用 ES module / fetch / 后端，`file://` 与任何子路径托管都能正常工作，
-  无需额外配置。
+## 📚 References
 
----
-
-## ⚠️ 说明与局限 Notes
-
-- 距离/自行/视向速度的不确定度未纳入轨道积分（输出为标称轨道中心值）。
-- 银河势为静态轴对称模型，未含银棒、旋臂、LMC 潮汐等非轴对称/时变项。
-- 少数星团（主要为 Bica 2019 新候选）缺 Gaia 6D 数据，故无轨道。
-- 坐标变换与引力势为独立自实现（规避 astropy/galpy 依赖），关键量已经文献值校验。
-- 旋臂/棒/核球为**科学参数化的粒子仿真**（示意性分布，非逐星实测）。
-
-## 📚 参考 References
-
-- Harris W.E. 1996, AJ, 112, 1487（2010 修订）
+- Harris W.E. 1996, AJ, 112, 1487 (2010 revision)
 - Vasiliev E. & Baumgardt H. 2021, MNRAS, 505, 5978
 - Baumgardt H. & Hilker M. 2018, MNRAS, 478, 1520
 - Bica E. et al. 2019, AJ, 157, 12
-- Bovy J. 2015, ApJS, 216, 29（MWPotential2014）
-- Reid M.J. et al. 2019, ApJ, 885, 131（旋臂）
-- Vallée J.P. 2017（旋臂综述）
-- Wegg C. et al. 2015（中心棒）
-- Mateu C. 2023, galstreams（恒星流汇编）
-- 数据经由 CDS VizieR（斯特拉斯堡天文数据中心）获取
+- Bovy J. 2015, ApJS, 216, 29 (MWPotential2014)
+- Reid M.J. et al. 2019, ApJ, 885, 131 (spiral arms)
+- Vallée J.P. 2017 (spiral-arm review)
+- Wegg C. et al. 2015, MNRAS, 450, 4050 (Galactic bar)
+- Mateu C. 2023, MNRAS, 520, 5225 (galstreams)
+- Data via [CDS VizieR](https://vizier.cds.unistra.fr/) (Strasbourg Astronomical Data Center)
 
 ---
 
 ## 📄 License
 
-[MIT](LICENSE) © Jianxing Chen. 数据版权归原作者所有（见 LICENSE 附注）。
+[MIT](LICENSE) © Jianxing Chen. Data remain the property of their respective authors (see LICENSE note).
 
-*Made with Three.js · 数据精确 · 完全本地 · 开放可视化*
+*Made with Three.js · precise data · fully offline · open visualization*
