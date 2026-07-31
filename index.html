@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Milky Way Globular Cluster Atlas</title>
+<meta http-equiv="refresh" content="4;url=viz/index.html">
+<style>
+:root{
+  --bg:#05070f; --bg2:#0a0f1f; --line:rgba(120,160,255,.16); --line2:rgba(120,160,255,.3);
+  --txt:#dfe7ff; --dim:#8593bd; --faint:#55608a;
+  --acc:#7fd4ff; --acc2:#4f8dff; --warm:#ffb454;
+  --mono:"SF Mono","JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{
+  min-height:100vh;display:flex;align-items:center;justify-content:center;
+  background:
+    radial-gradient(ellipse 90% 60% at 50% -10%, rgba(79,141,255,.14), transparent 60%),
+    radial-gradient(ellipse 60% 50% at 80% 110%, rgba(127,212,255,.08), transparent 60%),
+    var(--bg);
+  color:var(--txt);font-family:-apple-system,"Inter","Segoe UI",Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;padding:32px 20px;overflow-x:hidden;
+}
+/* 星点背景 */
+.stars{position:fixed;inset:0;pointer-events:none;z-index:0}
+.stars i{position:absolute;width:2px;height:2px;border-radius:50%;background:#8a9cd0;
+  opacity:.5;animation:tw 3s infinite ease-in-out}
+@keyframes tw{0%,100%{opacity:.15}50%{opacity:.7}}
+
+.card{position:relative;z-index:1;width:100%;max-width:760px;text-align:center}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.4em;color:var(--acc);
+  text-transform:uppercase;display:flex;align-items:center;justify-content:center;gap:12px}
+.eyebrow::before,.eyebrow::after{content:"";width:38px;height:1px;background:var(--acc);opacity:.6}
+h1{font-size:clamp(30px,5.4vw,50px);font-weight:800;letter-spacing:.01em;line-height:1.08;
+  margin:18px 0 6px;
+  background:linear-gradient(105deg,#fff 25%,var(--acc) 65%,var(--acc2));
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.sub{font-family:var(--mono);font-size:clamp(11px,1.6vw,13.5px);color:var(--dim);
+  letter-spacing:.06em;margin-bottom:26px}
+.sub b{color:var(--warm);font-weight:600}
+
+.preview{position:relative;border-radius:18px;overflow:hidden;border:1px solid var(--line2);
+  box-shadow:0 24px 70px rgba(0,0,0,.6),0 0 0 1px rgba(127,212,255,.06),
+    0 0 60px rgba(79,141,255,.12);
+  transform:perspective(1200px) rotateX(3deg);transition:transform .5s ease}
+.preview:hover{transform:perspective(1200px) rotateX(0deg) scale(1.01)}
+.preview img{width:100%;display:block}
+.preview .veil{position:absolute;inset:0;background:linear-gradient(180deg,transparent 55%,rgba(5,7,15,.72))}
+.preview .cap{position:absolute;left:18px;bottom:14px;font-family:var(--mono);font-size:10px;
+  letter-spacing:.2em;color:var(--acc);text-transform:uppercase;text-align:left}
+
+.cta{display:flex;gap:14px;justify-content:center;align-items:center;margin-top:30px;flex-wrap:wrap}
+.btn{font-family:var(--mono);font-size:13px;letter-spacing:.1em;text-decoration:none;
+  padding:14px 30px;border-radius:12px;transition:all .22s;display:inline-flex;align-items:center;gap:9px}
+.btn-main{background:linear-gradient(120deg,var(--acc2),#3a6fd8);color:#fff;font-weight:600;
+  box-shadow:0 8px 30px rgba(79,141,255,.4)}
+.btn-main:hover{transform:translateY(-2px);box-shadow:0 12px 40px rgba(79,141,255,.6)}
+.btn-ghost{background:rgba(120,160,255,.07);color:var(--txt);border:1px solid var(--line)}
+.btn-ghost:hover{background:rgba(120,160,255,.16);border-color:var(--acc2)}
+
+.count{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;color:var(--faint);
+  text-transform:uppercase;margin-top:20px}
+.count b{color:var(--acc);font-weight:600}
+
+.meta{display:flex;justify-content:center;gap:26px;flex-wrap:wrap;margin-top:34px;
+  font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--faint)}
+.meta span{display:flex;align-items:center;gap:6px}
+.meta i{width:5px;height:5px;border-radius:50%;background:var(--acc2);display:inline-block}
+</style>
+</head>
+<body>
+<div class="stars" id="stars"></div>
+
+<div class="card">
+  <div class="eyebrow">Galactic Halo Survey</div>
+  <h1>Milky Way<br>Globular Cluster Atlas</h1>
+  <div class="sub"><b>176</b> clusters · <b>135</b> orbits · <b>124</b> stellar streams · spiral arms &amp; bar</div>
+
+  <a class="preview" href="viz/index.html">
+    <img src="figures/viz_screenshot_home.png" alt="Milky Way Globular Cluster Atlas — 3D explorer">
+    <div class="veil"></div>
+    <div class="cap">Interactive 3D Explorer →</div>
+  </a>
+
+  <div class="cta">
+    <a class="btn btn-main" href="viz/index.html">▶&nbsp; Launch 3D Atlas</a>
+    <a class="btn btn-ghost" href="https://github.com/jianxing-chen/globular-cluster-atlas">GitHub Repo&nbsp;↗</a>
+  </div>
+
+  <div class="count">Launching in <b id="cd">4</b>s…</div>
+
+  <div class="meta">
+    <span><i></i>Harris 1996/2010</span>
+    <span><i></i>Gaia EDR3</span>
+    <span><i></i>MWPotential2014</span>
+    <span><i></i>galstreams</span>
+    <span><i></i>Three.js</span>
+  </div>
+</div>
+
+<script>
+// 星点背景
+(function(){
+  const s=document.getElementById('stars'),n=90;
+  for(let i=0;i<n;i++){
+    const d=document.createElement('i');
+    d.style.left=Math.random()*100+'%';
+    d.style.top=Math.random()*100+'%';
+    d.style.animationDelay=(Math.random()*3)+'s';
+    d.style.width=d.style.height=(Math.random()*2+0.6)+'px';
+    s.appendChild(d);
+  }
+  // 倒计时
+  let t=4;const el=document.getElementById('cd');
+  const iv=setInterval(()=>{t--;if(t<=0){clearInterval(iv);el.textContent='0';}else el.textContent=t;},1000);
+})();
+</script>
+</body>
+</html>
