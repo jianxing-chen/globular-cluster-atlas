@@ -13,6 +13,12 @@
 
 ![3D 可视化](figures/viz_screenshot_home.png)
 
+## 🔴 在线演示 Live Demo
+
+**https://jianxing-chen.github.io/globular-cluster-atlas/viz/**
+
+打开即玩，无需安装（GitHub Pages 托管，完全静态）。
+
 ---
 
 ## ✨ 亮点 Highlights
