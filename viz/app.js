@@ -666,6 +666,39 @@ $('btn-full').onclick = () => { document.fullscreenElement ? document.exitFullsc
 $('btn-panel').onclick = () => $('panel').classList.toggle('hidden');
 $('p-collapse').onclick = () => $('panel').classList.toggle('hidden');
 
+// ---------- 恢复初始状态 ----------
+function resetAll() {
+  // 1. 关闭信息卡/详情/选中
+  $('info').classList.remove('show'); $('detail').classList.remove('show');
+  selMarker.visible = false; showSelOrbit(null); selected = null; setHover(-1);
+  // 2. 相机回初始
+  controls.target.set(0, 0, 0);
+  animateCam(controls.target.clone(), new THREE.Vector3(0, 0, 0),
+             camera.position.clone(), new THREE.Vector3(26, 18, 34), 1200);
+  controls.autoRotate = false; autoRot = false; $('btn-rot').classList.remove('on');
+  // 3. 着色回 FeH
+  colorBy = 'feh';
+  [...$('seg-color').children].forEach(x => x.classList.toggle('on', x.dataset.v === 'feh'));
+  refreshColors();
+  $('leg-ttl').textContent = 'Metallicity [Fe/H]';
+  $('leg-lo').textContent = '−2.4'; $('leg-mid').textContent = '−1.3'; $('leg-hi').textContent = '−0.3';
+  $('leg-bar').style.background = 'linear-gradient(90deg,#5b8cff,#9fc0ff,#f0e6c8,#ffb454,#ff5d47)';
+  // 4. 筛选回默认
+  F = { fehLo: -2.6, fehHi: 0.3, rgc: 130, mv: -3 };
+  $('r-feh-lo').value = -2.6; $('r-feh-hi').value = 0.3;
+  $('r-rgc').value = 130; $('r-mv').value = -3;
+  $('o-feh').textContent = 'all'; $('o-rgc').textContent = '≤ 130'; $('o-mv').textContent = 'all';
+  applyFilters();
+  // 5. 开关回默认
+  const defs = { 't-orbit': false, 't-streams': false, 't-arms': true,
+                 't-disc': true, 't-ring': true, 't-label': false, 't-bloom': true };
+  for (const [id, v] of Object.entries(defs)) {
+    const el = $(id);
+    if (el.checked !== v) { el.checked = v; el.dispatchEvent(new Event('change')); }
+  }
+}
+$('btn-reset').onclick = resetAll;
+
 // search
 const q = $('q'), sugg = $('sugg');
 function doSearch(s) {
@@ -688,7 +721,13 @@ q.addEventListener('keydown', e => {
 });
 addEventListener('keydown', e => {
   if (e.key === '/' && document.activeElement !== q) { e.preventDefault(); q.focus(); }
-  if (e.key === 'Escape' && document.activeElement !== q) $('i-close').click();
+  if (e.key === 'Escape' && document.activeElement !== q) {
+    // 优先关详情/信息卡, 其次退出 Center view 回全局视角
+    if ($('detail').classList.contains('show')) $('detail-close').click();
+    else if ($('info').classList.contains('show')) $('i-close').click();
+    else resetAll();
+  }
+  if ((e.key === 'r' || e.key === 'R') && document.activeElement !== q) resetAll();
 });
 
 // ---------- resize / loop ----------
