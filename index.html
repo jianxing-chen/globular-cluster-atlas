@@ -15,13 +15,13 @@
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{height:100%}
 body{
-  min-height:100vh;display:flex;align-items:center;justify-content:center;
+  min-height:100vh;display:flex;align-items:flex-start;justify-content:center;
   background:
     radial-gradient(ellipse 90% 60% at 50% -10%, rgba(79,141,255,.14), transparent 60%),
     radial-gradient(ellipse 60% 50% at 80% 110%, rgba(127,212,255,.08), transparent 60%),
     var(--bg);
   color:var(--txt);font-family:-apple-system,"Inter","Segoe UI",Helvetica,Arial,sans-serif;
-  -webkit-font-smoothing:antialiased;padding:32px 20px;overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;padding:20px 20px 32px;overflow-x:hidden;
 }
 /* 星点背景 */
 .stars{position:fixed;inset:0;pointer-events:none;z-index:0}
@@ -30,30 +30,31 @@ body{
 @keyframes tw{0%,100%{opacity:.15}50%{opacity:.7}}
 
 .card{position:relative;z-index:1;width:100%;max-width:760px;text-align:center}
-.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.4em;color:var(--acc);
+.eyebrow{font-family:var(--mono);font-size:10.5px;letter-spacing:.4em;color:var(--acc);
   text-transform:uppercase;display:flex;align-items:center;justify-content:center;gap:12px}
 .eyebrow::before,.eyebrow::after{content:"";width:38px;height:1px;background:var(--acc);opacity:.6}
-h1{font-size:clamp(30px,5.4vw,50px);font-weight:800;letter-spacing:.01em;line-height:1.08;
-  margin:18px 0 6px;
+h1{font-size:clamp(26px,4.6vw,42px);font-weight:800;letter-spacing:.01em;line-height:1.08;
+  margin:14px 0 5px;
   background:linear-gradient(105deg,#fff 25%,var(--acc) 65%,var(--acc2));
   -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
-.sub{font-family:var(--mono);font-size:clamp(11px,1.6vw,13.5px);color:var(--dim);
-  letter-spacing:.06em;margin-bottom:26px}
+.sub{font-family:var(--mono);font-size:clamp(10.5px,1.5vw,13px);color:var(--dim);
+  letter-spacing:.06em;margin-bottom:18px}
 .sub b{color:var(--warm);font-weight:600}
 
 .preview{position:relative;border-radius:18px;overflow:hidden;border:1px solid var(--line2);
   box-shadow:0 24px 70px rgba(0,0,0,.6),0 0 0 1px rgba(127,212,255,.06),
     0 0 60px rgba(79,141,255,.12);
-  transform:perspective(1200px) rotateX(3deg);transition:transform .5s ease}
-.preview:hover{transform:perspective(1200px) rotateX(0deg) scale(1.01)}
-.preview img{width:100%;display:block}
+  transform:perspective(1200px) rotateX(2deg);transition:transform .5s ease;
+  max-height:44vh;display:flex;align-items:center;justify-content:center}
+.preview:hover{transform:perspective(1200px) rotateX(0deg) scale(1.005)}
+.preview img{width:100%;height:100%;max-height:44vh;object-fit:cover;object-position:center;display:block}
 .preview .veil{position:absolute;inset:0;background:linear-gradient(180deg,transparent 55%,rgba(5,7,15,.72))}
 .preview .cap{position:absolute;left:18px;bottom:14px;font-family:var(--mono);font-size:10px;
   letter-spacing:.2em;color:var(--acc);text-transform:uppercase;text-align:left}
 
-.cta{display:flex;gap:14px;justify-content:center;align-items:center;margin-top:30px;flex-wrap:wrap}
+.cta{display:flex;gap:14px;justify-content:center;align-items:center;margin-top:22px;flex-wrap:wrap}
 .btn{font-family:var(--mono);font-size:13px;letter-spacing:.1em;text-decoration:none;
-  padding:14px 30px;border-radius:12px;transition:all .22s;display:inline-flex;align-items:center;gap:9px}
+  padding:13px 28px;border-radius:12px;transition:all .22s;display:inline-flex;align-items:center;gap:9px}
 .btn-main{background:linear-gradient(120deg,var(--acc2),#3a6fd8);color:#fff;font-weight:600;
   box-shadow:0 8px 30px rgba(79,141,255,.4)}
 .btn-main:hover{transform:translateY(-2px);box-shadow:0 12px 40px rgba(79,141,255,.6)}
@@ -61,10 +62,10 @@ h1{font-size:clamp(30px,5.4vw,50px);font-weight:800;letter-spacing:.01em;line-he
 .btn-ghost:hover{background:rgba(120,160,255,.16);border-color:var(--acc2)}
 
 .count{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;color:var(--faint);
-  text-transform:uppercase;margin-top:20px}
+  text-transform:uppercase;margin-top:16px}
 .count b{color:var(--acc);font-weight:600}
 
-.meta{display:flex;justify-content:center;gap:26px;flex-wrap:wrap;margin-top:34px;
+.meta{display:flex;justify-content:center;gap:26px;flex-wrap:wrap;margin-top:22px;
   font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--faint)}
 .meta span{display:flex;align-items:center;gap:6px}
 .meta i{width:5px;height:5px;border-radius:50%;background:var(--acc2);display:inline-block}
