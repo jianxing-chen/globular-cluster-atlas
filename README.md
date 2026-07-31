@@ -32,12 +32,17 @@
 ## 🚀 快速开始 Quick Start
 
 ### 3D 交互可视化（无需任何安装，双击即开）
-直接用浏览器打开：
-```
-viz/index.html
+```bash
+git clone git@github.com:jianxing-chen/globular-cluster-atlas.git
+cd globular-cluster-atlas
+# 用浏览器打开 viz/index.html 即可（双击 / open / 拖入浏览器）
+open viz/index.html        # macOS
+# start viz\index.html     # Windows
+# xdg-open viz/index.html  # Linux
 ```
 > **任何现代浏览器（Chrome / Edge / Firefox / Safari）双击即可运行**。
 > 应用采用纯经典脚本（无 ES module、无网络请求、无 `file://` 限制），完全离线自包含。
+> 也可部署到任意静态托管（含 GitHub Pages）——入口即 `viz/index.html`，无需构建。
 
 **交互 Interactions：**
 - **拖拽** 旋转 · **滚轮** 缩放 · **点击星团** 弹出完整信息卡
