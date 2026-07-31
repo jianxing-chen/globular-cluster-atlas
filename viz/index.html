@@ -118,6 +118,30 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;
 .i-foot button:hover{background:var(--acc2);color:#fff}
 .i-foot button.on{background:var(--acc2);color:#fff}
 
+/* ---------- 完整数据详情面板 ---------- */
+#detail{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(.94);z-index:60;
+  width:min(460px,92vw);max-height:82vh;background:var(--panel2);border:1px solid var(--line2);
+  border-radius:16px;backdrop-filter:blur(20px);box-shadow:0 24px 70px rgba(0,0,0,.7);
+  opacity:0;pointer-events:none;transition:opacity .3s,transform .3s;display:flex;flex-direction:column}
+#detail.show{opacity:1;transform:translate(-50%,-50%) scale(1);pointer-events:auto}
+#detail .d-head{padding:14px 18px;border-bottom:1px solid var(--line);display:flex;
+  align-items:center;justify-content:space-between;flex-shrink:0}
+#detail .d-head .tt{font-family:var(--mono);font-size:10px;letter-spacing:.24em;color:var(--acc);text-transform:uppercase}
+#detail-close{width:26px;height:26px;border-radius:8px;background:rgba(120,160,255,.1);
+  border:1px solid var(--line);color:var(--dim);cursor:pointer;font-size:15px;line-height:1;
+  display:flex;align-items:center;justify-content:center}
+#detail-close:hover{background:var(--rich);color:#fff;border-color:var(--rich)}
+#detail-body{padding:6px 18px 16px;overflow-y:auto}
+#detail-body::-webkit-scrollbar{width:6px}
+#detail-body::-webkit-scrollbar-thumb{background:var(--line2);border-radius:3px}
+.d-table{width:100%;border-collapse:collapse;font-family:var(--mono)}
+.d-table td{padding:6px 4px;border-bottom:1px solid rgba(120,160,255,.07);font-size:12px}
+.d-table .dk{color:var(--dim);letter-spacing:.03em}
+.d-table .dv{color:var(--txt);text-align:right;font-weight:600}
+.d-table .du{color:var(--faint);font-weight:400;font-size:10px;margin-left:5px}
+.d-table .d-sec td{padding:12px 4px 5px;border-bottom:1px solid var(--line2);
+  color:var(--acc);font-size:9px;letter-spacing:.2em;text-transform:uppercase;font-weight:700}
+
 /* ---------- 底部状态栏 / 图例 ---------- */
 #hud{position:fixed;bottom:24px;right:26px;z-index:20;text-align:right;pointer-events:none}
 #legend{background:var(--panel);border:1px solid var(--line);border-radius:11px;
@@ -152,6 +176,19 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;
 #tip{position:fixed;z-index:30;pointer-events:none;background:rgba(8,12,26,.95);
   border:1px solid var(--line2);border-radius:8px;padding:5px 10px;font-family:var(--mono);
   font-size:11px;color:var(--txt);opacity:0;transition:opacity .15s;white-space:nowrap}
+/* hover 悬浮信息卡 */
+#htip{position:fixed;z-index:30;pointer-events:none;min-width:150px;
+  background:rgba(10,15,30,.94);border:1px solid var(--line2);border-radius:12px;
+  padding:10px 13px 9px;opacity:0;transition:opacity .15s;
+  box-shadow:0 10px 32px rgba(0,0,0,.55);backdrop-filter:blur(10px)}
+#htip .ht-name{font-size:14px;font-weight:800;color:#fff;letter-spacing:.01em}
+#htip .ht-id{font-family:var(--mono);font-size:9.5px;color:var(--dim);margin:1px 0 3px}
+#htip .ht-row{display:flex;justify-content:space-between;gap:16px;
+  font-family:var(--mono);font-size:11px;padding:1.5px 0}
+#htip .ht-row span{color:var(--faint)}
+#htip .ht-row b{color:var(--txt);font-weight:600}
+#htip .ht-hint{font-family:var(--mono);font-size:8.5px;color:var(--acc);
+  letter-spacing:.08em;margin-top:6px;text-transform:uppercase;opacity:.8}
 #hint{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:15;
   font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--faint);
   text-transform:uppercase;pointer-events:none;transition:opacity 1s}
@@ -241,9 +278,14 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;
   </div>
   <div class="i-grid" id="i-grid"></div>
   <div class="i-foot">
-    <button id="i-orbit">Toggle orbit</button>
-    <button id="i-goto">Fly to</button>
+    <button id="i-goto">Center view</button>
+    <button id="i-detail">Full data</button>
   </div>
+</div>
+
+<div id="detail">
+  <div class="d-head"><span class="tt">Full cluster data</span><button id="detail-close">×</button></div>
+  <div id="detail-body"></div>
 </div>
 
 <div id="hud">
@@ -256,6 +298,7 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;
 </div>
 
 <div id="tip"></div>
+<div id="htip"></div>
 <div id="hint">drag to orbit &nbsp;·&nbsp; scroll to zoom &nbsp;·&nbsp; click a cluster</div>
 
 <script src="gc_data.js"></script>

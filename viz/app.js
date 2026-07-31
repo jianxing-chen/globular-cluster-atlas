@@ -348,26 +348,35 @@ geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
 geo.setAttribute('aColor', new THREE.BufferAttribute(col, 3));
 geo.setAttribute('aSize', new THREE.BufferAttribute(siz, 1));
 geo.setAttribute('aVis', new THREE.BufferAttribute(vis, 1));
+// hover 高亮: 每点一个 0/1 标志, 配合放大+发光
+const hl = new Float32Array(N).fill(0);
+geo.setAttribute('aHl', new THREE.BufferAttribute(hl, 1));
 const ptsMat = new THREE.ShaderMaterial({
   transparent: true, depthWrite: true, blending: THREE.NormalBlending,
   uniforms: { uScale: { value: 1 } },
   vertexShader: `
-    attribute vec3 aColor; attribute float aSize; attribute float aVis;
-    varying vec3 vC; varying float vA;
+    attribute vec3 aColor; attribute float aSize; attribute float aVis; attribute float aHl;
+    varying vec3 vC; varying float vA; varying float vHl;
     uniform float uScale;
     void main(){
-      vC = aColor; vA = aVis;
+      vC = aColor; vA = aVis; vHl = aHl;
       vec4 mv = modelViewMatrix * vec4(position,1.0);
-      gl_PointSize = aSize * uScale * (46.0 / -mv.z);
+      float boost = 1.0 + aHl * 1.3;             // hover 放大 ~2.3x
+      gl_PointSize = aSize * uScale * boost * (46.0 / -mv.z);
       gl_Position = projectionMatrix * mv;
     }`,
   fragmentShader: `
-    varying vec3 vC; varying float vA;
+    varying vec3 vC; varying float vA; varying float vHl;
     void main(){
       vec2 uv = gl_PointCoord - 0.5; float d = length(uv);
       float a = smoothstep(0.5, 0.08, d);
       float core = smoothstep(0.16, 0.0, d);
       vec3 col = mix(vC, vec3(1.0), core*0.45);
+      // hover: 提亮 + 白色发光环
+      float ring = smoothstep(0.5, 0.42, d) - smoothstep(0.34, 0.26, d);
+      col = mix(col, vec3(1.0), core*0.45 + vHl*0.55);
+      col += vec3(1.0) * ring * vHl * 0.9;
+      a = max(a, ring * vHl);
       gl_FragColor = vec4(col, a * vA);
       if (gl_FragColor.a < 0.02) discard;
     }`,
@@ -469,11 +478,46 @@ function showInfo(c) {
   // marker
   selMarker.position.copy(V(c.x, c.y, c.z)); selMarker.visible = true;
   showSelOrbit(c);
-  $('i-orbit').classList.toggle('on', !!c.orbit);
 }
 $('i-close').onclick = () => { $('info').classList.remove('show'); selMarker.visible = false; showSelOrbit(null); selected = null; };
-$('i-orbit').onclick = () => { if (selected && selected.orbit) { orbitGroup.visible = true; $('t-orbit').checked = true; showSelOrbit(selected); } };
 $('i-goto').onclick = () => { if (selected) flyTo(V(selected.x, selected.y, selected.z), 6); };
+
+// ---------- Full data detail panel ----------
+function row2(k, v, unit = '') {
+  return `<tr><td class="dk">${k}</td><td class="dv">${v}<span class="du">${unit}</span></td></tr>`;
+}
+function showDetail(c) {
+  const o = c.orbit || {};
+  const has = v => v != null && !isNaN(v);
+  let html = '<table class="d-table">';
+  html += `<tr class="d-sec"><td colspan="2">Position &amp; Distance</td></tr>`;
+  html += row2('RA (J2000)', fmt(c.ra, 3), '°') + row2('Dec (J2000)', fmt(c.dec, 3), '°');
+  html += row2('l', fmt(c.l, 2), '°') + row2('b', fmt(c.b, 2), '°');
+  html += row2('Distance', fmt(c.dist, 2), 'kpc') + row2('dist src', c.dist_src || '—');
+  html += row2('R_gc', fmt(c.rgc, 2), 'kpc');
+  html += `<tr class="d-sec"><td colspan="2">Photometry &amp; Metallicity</td></tr>`;
+  html += row2('V', fmt(c.V, 2), 'mag') + row2('M_V', fmt(c.MV, 2), 'mag');
+  html += row2('[Fe/H]', fmt(c.feh, 2), 'dex') + row2('E(B−V)', fmt(c.ebv, 3), 'mag');
+  html += `<tr class="d-sec"><td colspan="2">Kinematics (Gaia EDR3)</td></tr>`;
+  html += row2('pm_α*', fmt(c.pmra, 3), 'mas/yr') + row2('pm_δ', fmt(c.pmde, 3), 'mas/yr');
+  html += row2('V_r', fmt(c.vr, 1), 'km/s') + row2('N★', has(c.nstar) ? c.nstar : '—');
+  html += `<tr class="d-sec"><td colspan="2">Structure &amp; Dynamics</td></tr>`;
+  html += row2('Mass', has(c.mass) ? (c.mass/1e5).toFixed(2)+'×10⁵' : '—', 'M☉');
+  html += row2('M/L_V', fmt(c.ml, 2)) + row2('r_h', fmt(c.rh, 2), 'pc');
+  html += row2('σ₀', fmt(c.sigma0, 1), 'km/s') + row2('v_esc', fmt(c.vesc, 1), 'km/s');
+  html += row2('c', fmt(c.c, 2)) + row2('log T_rh', fmt(c.logtrh, 2), 'yr');
+  if (c.orbit) {
+    html += `<tr class="d-sec"><td colspan="2">Orbit (MWPotential2014, 3 Gyr)</td></tr>`;
+    html += row2('R_peri', fmt(o.rperi, 2), 'kpc') + row2('R_apo', fmt(o.apo, 2), 'kpc');
+    html += row2('eccentricity', fmt(o.ecc, 3)) + row2('z_max', fmt(o.zmax, 2), 'kpc');
+    html += row2('sense', o.retro ? 'retrograde 逆行' : 'prograde 顺行');
+  }
+  html += '</table>';
+  $('detail-body').innerHTML = html;
+  $('detail').classList.add('show');
+}
+$('i-detail').onclick = () => { if (selected) showDetail(selected); };
+$('detail-close').onclick = () => $('detail').classList.remove('show');
 
 // ---------- picking ----------
 let downPos = null;
@@ -492,23 +536,46 @@ renderer.domElement.addEventListener('pointerup', e => {
     if (visArr[hit[0].index] > 0.5) showInfo(c);
   }
 });
-// hover tooltip
-const tip = $('tip');
+// hover: 点亮星团 + 悬浮信息卡
+const htip = $('htip');
+let hoverIdx = -1;
+function setHover(idx) {
+  if (idx === hoverIdx) return;
+  if (hoverIdx >= 0) hl[hoverIdx] = 0;
+  hoverIdx = idx;
+  if (idx >= 0) hl[idx] = 1;
+  geo.attributes.aHl.needsUpdate = true;
+}
 renderer.domElement.addEventListener('pointermove', e => {
   mouse.x = (e.clientX / innerWidth) * 2 - 1;
   mouse.y = -(e.clientY / innerHeight) * 2 + 1;
   ray.setFromCamera(mouse, camera);
-  const hit = ray.intersectObject(points);
+  const hits = ray.intersectObject(points);
   let shown = false;
-  if (hit.length) {
-    const i = hit[0].index, c = CL[i];
-    if (visArr[i] > 0.5) {
-      tip.textContent = c.name; tip.style.opacity = 1;
-      tip.style.left = (e.clientX + 14) + 'px'; tip.style.top = (e.clientY - 8) + 'px';
-      renderer.domElement.style.cursor = 'pointer'; shown = true;
+  if (hits.length) {
+    // 取可见且最近的命中
+    for (const h of hits) {
+      const i = h.index;
+      if (visArr[i] > 0.5) {
+        const c = CL[i];
+        setHover(i);
+        htip.innerHTML = `<div class="ht-name">${c.name}</div>` +
+          (c.id !== c.name ? `<div class="ht-id">${c.id}</div>` : '') +
+          `<div class="ht-row"><span>d</span><b>${fmt(c.dist,2)} kpc</b></div>` +
+          `<div class="ht-row"><span>[Fe/H]</span><b>${fmt(c.feh,2)}</b></div>` +
+          `<div class="ht-row"><span>M_V</span><b>${fmt(c.MV,2)}</b></div>` +
+          `<div class="ht-hint">click for details</div>`;
+        htip.style.opacity = 1;
+        // 防止超出屏幕右/下边缘
+        const x = Math.min(e.clientX + 16, innerWidth - 190);
+        const y = Math.min(e.clientY + 12, innerHeight - 150);
+        htip.style.left = x + 'px'; htip.style.top = y + 'px';
+        renderer.domElement.style.cursor = 'pointer'; shown = true;
+        break;
+      }
     }
   }
-  if (!shown) { tip.style.opacity = 0; renderer.domElement.style.cursor = 'grab'; }
+  if (!shown) { setHover(-1); htip.style.opacity = 0; renderer.domElement.style.cursor = 'grab'; }
 });
 
 // ---------- filters ----------
