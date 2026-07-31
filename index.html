@@ -4,118 +4,389 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Milky Way Globular Cluster Atlas</title>
-<meta http-equiv="refresh" content="4;url=viz/index.html">
+<meta name="description" content="An interactive atlas of 176 Milky Way globular clusters with 135 integrated orbits, 124 stellar streams, and a scientific spiral-arm & bar model — rendered in a zero-install 3D web explorer.">
 <style>
 :root{
-  --bg:#05070f; --bg2:#0a0f1f; --line:rgba(120,160,255,.16); --line2:rgba(120,160,255,.3);
-  --txt:#dfe7ff; --dim:#8593bd; --faint:#55608a;
-  --acc:#7fd4ff; --acc2:#4f8dff; --warm:#ffb454;
+  --bg:#05070f; --bg2:#0a0f1f; --panel:#0d1426; --panel2:#101a33;
+  --line:rgba(120,160,255,.14); --line2:rgba(120,160,255,.28);
+  --txt:#dfe7ff; --dim:#8f9cc4; --faint:#5a6690;
+  --acc:#7fd4ff; --acc2:#4f8dff; --warm:#ffb454; --teal:#37e0d8;
   --mono:"SF Mono","JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
 }
 *{margin:0;padding:0;box-sizing:border-box}
-html,body{height:100%}
+html{scroll-behavior:smooth}
 body{
-  min-height:100vh;display:flex;align-items:flex-start;justify-content:center;
   background:
-    radial-gradient(ellipse 90% 60% at 50% -10%, rgba(79,141,255,.14), transparent 60%),
-    radial-gradient(ellipse 60% 50% at 80% 110%, rgba(127,212,255,.08), transparent 60%),
+    radial-gradient(ellipse 90% 55% at 50% -8%, rgba(79,141,255,.13), transparent 60%),
     var(--bg);
   color:var(--txt);font-family:-apple-system,"Inter","Segoe UI",Helvetica,Arial,sans-serif;
-  -webkit-font-smoothing:antialiased;padding:20px 20px 32px;overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;line-height:1.6;
 }
-/* 星点背景 */
 .stars{position:fixed;inset:0;pointer-events:none;z-index:0}
-.stars i{position:absolute;width:2px;height:2px;border-radius:50%;background:#8a9cd0;
-  opacity:.5;animation:tw 3s infinite ease-in-out}
-@keyframes tw{0%,100%{opacity:.15}50%{opacity:.7}}
+.stars i{position:absolute;width:2px;height:2px;border-radius:50%;background:#8a9cd0;opacity:.5;animation:tw 3.5s infinite ease-in-out}
+@keyframes tw{0%,100%{opacity:.12}50%{opacity:.7}}
+.wrap{position:relative;z-index:1;max-width:1060px;margin:0 auto;padding:0 26px}
+a{color:var(--acc);text-decoration:none}
+a:hover{text-decoration:underline}
+.mono{font-family:var(--mono)}
 
-.card{position:relative;z-index:1;width:100%;max-width:760px;text-align:center}
-.eyebrow{font-family:var(--mono);font-size:10.5px;letter-spacing:.4em;color:var(--acc);
+/* ---------- 顶部导航 ---------- */
+nav{position:sticky;top:0;z-index:50;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  background:rgba(5,7,15,.72);border-bottom:1px solid var(--line)}
+nav .wrap{display:flex;align-items:center;justify-content:space-between;height:56px}
+nav .logo{font-family:var(--mono);font-size:12px;letter-spacing:.22em;color:var(--acc);text-transform:uppercase;display:flex;align-items:center;gap:8px}
+nav .logo::before{content:"◍";color:var(--warm)}
+nav .links{display:flex;gap:20px;font-family:var(--mono);font-size:11px;letter-spacing:.06em}
+nav .links a{color:var(--dim)}
+nav .links a:hover{color:var(--acc);text-decoration:none}
+nav .cta-nav{font-family:var(--mono);font-size:11px;padding:7px 16px;border-radius:9px;
+  background:linear-gradient(120deg,var(--acc2),#3a6fd8);color:#fff}
+nav .cta-nav:hover{text-decoration:none;transform:translateY(-1px)}
+@media(max-width:820px){nav .links{display:none}}
+
+/* ---------- 英雄区 ---------- */
+header{padding:70px 0 40px;text-align:center}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.42em;color:var(--acc);
   text-transform:uppercase;display:flex;align-items:center;justify-content:center;gap:12px}
-.eyebrow::before,.eyebrow::after{content:"";width:38px;height:1px;background:var(--acc);opacity:.6}
-h1{font-size:clamp(26px,4.6vw,42px);font-weight:800;letter-spacing:.01em;line-height:1.08;
-  margin:14px 0 5px;
+.eyebrow::before,.eyebrow::after{content:"";width:40px;height:1px;background:var(--acc);opacity:.6}
+h1{font-size:clamp(34px,6vw,58px);font-weight:800;letter-spacing:.01em;line-height:1.06;margin:20px 0 8px;
   background:linear-gradient(105deg,#fff 25%,var(--acc) 65%,var(--acc2));
   -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
-.sub{font-family:var(--mono);font-size:clamp(10.5px,1.5vw,13px);color:var(--dim);
-  letter-spacing:.06em;margin-bottom:18px}
-.sub b{color:var(--warm);font-weight:600}
-
-.preview{position:relative;border-radius:18px;overflow:hidden;border:1px solid var(--line2);
-  box-shadow:0 24px 70px rgba(0,0,0,.6),0 0 0 1px rgba(127,212,255,.06),
-    0 0 60px rgba(79,141,255,.12);
-  transform:perspective(1200px) rotateX(2deg);transition:transform .5s ease;
-  max-height:44vh;display:flex;align-items:center;justify-content:center}
-.preview:hover{transform:perspective(1200px) rotateX(0deg) scale(1.005)}
-.preview img{width:100%;height:100%;max-height:44vh;object-fit:cover;object-position:center;display:block}
-.preview .veil{position:absolute;inset:0;background:linear-gradient(180deg,transparent 55%,rgba(5,7,15,.72))}
-.preview .cap{position:absolute;left:18px;bottom:14px;font-family:var(--mono);font-size:10px;
+.tagline{font-family:var(--mono);font-size:clamp(12px,1.7vw,15px);color:var(--dim);letter-spacing:.05em;max-width:640px;margin:0 auto}
+.hero-viz{margin:36px auto 0;max-width:840px;border-radius:18px;overflow:hidden;border:1px solid var(--line2);
+  box-shadow:0 28px 80px rgba(0,0,0,.6),0 0 60px rgba(79,141,255,.14);position:relative;
+  transform:perspective(1400px) rotateX(2.5deg);transition:transform .5s}
+.hero-viz:hover{transform:perspective(1400px) rotateX(0)}
+.hero-viz img{width:100%;display:block}
+.hero-viz .veil{position:absolute;inset:0;background:linear-gradient(180deg,transparent 62%,rgba(5,7,15,.78))}
+.hero-viz .play{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  width:84px;height:84px;border-radius:50%;background:rgba(79,141,255,.2);border:1.5px solid var(--acc);
+  backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;
+  font-size:26px;color:#fff;transition:all .25s;box-shadow:0 0 40px rgba(79,141,255,.5)}
+.hero-viz:hover .play{background:rgba(79,141,255,.45);transform:translate(-50%,-50%) scale(1.08)}
+.hero-viz .cap{position:absolute;left:20px;bottom:16px;font-family:var(--mono);font-size:10.5px;
   letter-spacing:.2em;color:var(--acc);text-transform:uppercase;text-align:left}
-
-.cta{display:flex;gap:14px;justify-content:center;align-items:center;margin-top:22px;flex-wrap:wrap}
-.btn{font-family:var(--mono);font-size:13px;letter-spacing:.1em;text-decoration:none;
-  padding:13px 28px;border-radius:12px;transition:all .22s;display:inline-flex;align-items:center;gap:9px}
+.hero-btns{display:flex;gap:14px;justify-content:center;margin-top:30px;flex-wrap:wrap}
+.btn{font-family:var(--mono);font-size:13px;letter-spacing:.08em;padding:14px 30px;border-radius:12px;
+  transition:all .22s;display:inline-flex;align-items:center;gap:9px}
 .btn-main{background:linear-gradient(120deg,var(--acc2),#3a6fd8);color:#fff;font-weight:600;
   box-shadow:0 8px 30px rgba(79,141,255,.4)}
-.btn-main:hover{transform:translateY(-2px);box-shadow:0 12px 40px rgba(79,141,255,.6)}
+.btn-main:hover{transform:translateY(-2px);box-shadow:0 12px 42px rgba(79,141,255,.6);text-decoration:none}
 .btn-ghost{background:rgba(120,160,255,.07);color:var(--txt);border:1px solid var(--line)}
-.btn-ghost:hover{background:rgba(120,160,255,.16);border-color:var(--acc2)}
+.btn-ghost:hover{background:rgba(120,160,255,.16);border-color:var(--acc2);text-decoration:none}
 
-.count{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;color:var(--faint);
-  text-transform:uppercase;margin-top:16px}
-.count b{color:var(--acc);font-weight:600}
+/* ---------- 统计条 ---------- */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px;margin:48px 0 8px}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px 16px;text-align:center}
+.stat .n{font-family:var(--mono);font-size:30px;font-weight:700;color:var(--acc);letter-spacing:-.01em}
+.stat .l{font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--faint);text-transform:uppercase;margin-top:5px}
+.stat.g .n{color:var(--warm)} .stat.t .n{color:var(--teal)}
 
-.meta{display:flex;justify-content:center;gap:26px;flex-wrap:wrap;margin-top:22px;
-  font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--faint)}
-.meta span{display:flex;align-items:center;gap:6px}
-.meta i{width:5px;height:5px;border-radius:50%;background:var(--acc2);display:inline-block}
+/* ---------- 区块 ---------- */
+section{padding:44px 0;border-top:1px solid var(--line)}
+.sec-tag{font-family:var(--mono);font-size:10.5px;letter-spacing:.3em;color:var(--acc);text-transform:uppercase;display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.sec-tag::before{content:"";width:24px;height:1px;background:var(--acc)}
+h2{font-size:clamp(22px,3.2vw,30px);font-weight:800;letter-spacing:.01em;margin-bottom:16px}
+p.lead{color:var(--dim);font-size:15.5px;max-width:760px;margin-bottom:20px}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:34px;align-items:start}
+.cols>*{min-width:0}
+@media(max-width:760px){.cols{grid-template-columns:1fr}}
+
+/* ---------- 数据表格 ---------- */
+.tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:14px;background:var(--panel)}
+table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12px;min-width:340px}
+th{background:var(--panel2);color:var(--acc);text-align:left;padding:11px 16px;font-weight:600;
+  letter-spacing:.06em;font-size:10.5px;text-transform:uppercase;border-bottom:1px solid var(--line)}
+td{padding:10px 16px;border-bottom:1px solid rgba(120,160,255,.07);color:var(--txt)}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(120,160,255,.05)}
+td.k{color:var(--faint);font-size:10.5px}
+.note{font-size:11.5px;color:var(--faint);font-family:var(--mono);margin-top:10px;letter-spacing:.02em}
+
+/* ---------- 来源卡片 ---------- */
+.srcs{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.src{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:16px 18px;transition:border-color .2s}
+.src:hover{border-color:var(--acc2)}
+.src .t{font-size:13.5px;font-weight:700;color:var(--txt)}
+.src .cat{font-family:var(--mono);font-size:10px;color:var(--acc);letter-spacing:.08em;margin-top:3px}
+.src .d{font-size:12px;color:var(--dim);margin-top:7px;line-height:1.5}
+.src .n{font-family:var(--mono);font-size:10.5px;color:var(--warm);margin-top:7px}
+
+/* ---------- 列表/参数 ---------- */
+ul.clean{list-style:none;margin:6px 0}
+ul.clean li{padding:8px 0 8px 24px;position:relative;color:var(--dim);font-size:14px;border-bottom:1px solid rgba(120,160,255,.06)}
+ul.clean li:last-child{border-bottom:none}
+ul.clean li::before{content:"▸";position:absolute;left:2px;color:var(--acc2)}
+ul.clean b{color:var(--txt);font-weight:600}
+.chip{display:inline-block;font-family:var(--mono);font-size:10.5px;background:rgba(120,160,255,.1);
+  color:var(--acc);border:1px solid var(--line);border-radius:7px;padding:3px 9px;margin:3px 4px 0 0;letter-spacing:.03em}
+.eq{font-family:var(--mono);font-size:12.5px;background:var(--panel2);border:1px solid var(--line);
+  border-radius:10px;padding:12px 16px;color:var(--acc);margin:12px 0;overflow-x:auto;letter-spacing:.02em}
+
+/* ---------- 校验表 ---------- */
+.ok{color:var(--teal);font-family:var(--mono)}
+
+/* ---------- 画廊 ---------- */
+.gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+.gitem{border:1px solid var(--line);border-radius:13px;overflow:hidden;background:var(--panel);transition:transform .25s,border-color .25s}
+.gitem:hover{transform:translateY(-4px);border-color:var(--acc2)}
+.gitem img{width:100%;display:block;aspect-ratio:16/10;object-fit:cover}
+.gitem .c{font-family:var(--mono);font-size:10.5px;color:var(--dim);padding:10px 14px;letter-spacing:.05em;border-top:1px solid var(--line)}
+
+/* ---------- 结构 / 代码 ---------- */
+pre{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:18px 20px;
+  font-family:var(--mono);font-size:12px;color:var(--dim);overflow-x:auto;line-height:1.65}
+pre .c{color:var(--faint)} pre .d{color:var(--acc)}
+
+/* ---------- 页脚 ---------- */
+footer{border-top:1px solid var(--line);padding:34px 0 46px;text-align:center}
+footer .lic{font-family:var(--mono);font-size:11px;color:var(--faint);letter-spacing:.06em;line-height:2}
+footer .top{margin-top:14px}
+footer .top a{font-family:var(--mono);font-size:11px;color:var(--acc)}
+.disclaimer{font-size:11.5px;color:var(--faint);max-width:640px;margin:16px auto 0;line-height:1.7}
 </style>
 </head>
 <body>
 <div class="stars" id="stars"></div>
 
-<div class="card">
+<nav>
+  <div class="wrap">
+    <div class="logo">GC Atlas</div>
+    <div class="links">
+      <a href="#overview">Overview</a>
+      <a href="#data">Data</a>
+      <a href="#sources">Sources</a>
+      <a href="#model">Galaxy</a>
+      <a href="#validation">Validation</a>
+      <a href="#gallery">Gallery</a>
+      <a href="#reproduce">Reproduce</a>
+    </div>
+    <a class="cta-nav" href="viz/index.html">▶ Launch 3D</a>
+  </div>
+</nav>
+
+<header class="wrap">
   <div class="eyebrow">Galactic Halo Survey</div>
   <h1>Milky Way<br>Globular Cluster Atlas</h1>
-  <div class="sub"><b>176</b> clusters · <b>135</b> orbits · <b>124</b> stellar streams · spiral arms &amp; bar</div>
+  <p class="tagline">An interactive atlas of Galactic globular clusters — multi-survey catalog,
+    orbit integration, stellar streams, and a scientific spiral-arm &amp; bar model,
+    in a zero-install 3D web explorer.</p>
 
-  <a class="preview" href="viz/index.html">
+  <a class="hero-viz" href="viz/index.html">
     <img src="figures/viz_screenshot_home.png" alt="Milky Way Globular Cluster Atlas — 3D explorer">
     <div class="veil"></div>
-    <div class="cap">Interactive 3D Explorer →</div>
+    <div class="play">▶</div>
+    <div class="cap">Interactive 3D Explorer — click to launch</div>
   </a>
 
-  <div class="cta">
+  <div class="hero-btns">
     <a class="btn btn-main" href="viz/index.html">▶&nbsp; Launch 3D Atlas</a>
     <a class="btn btn-ghost" href="https://github.com/jianxing-chen/globular-cluster-atlas">GitHub Repo&nbsp;↗</a>
   </div>
+</header>
 
-  <div class="count">Launching in <b id="cd">4</b>s…</div>
-
-  <div class="meta">
-    <span><i></i>Harris 1996/2010</span>
-    <span><i></i>Gaia EDR3</span>
-    <span><i></i>MWPotential2014</span>
-    <span><i></i>galstreams</span>
-    <span><i></i>Three.js</span>
+<div class="wrap" id="overview">
+  <div class="stats">
+    <div class="stat"><div class="n">176</div><div class="l">Globular clusters</div></div>
+    <div class="stat t"><div class="n">135</div><div class="l">Integrated orbits</div></div>
+    <div class="stat"><div class="n">124</div><div class="l">Stellar streams</div></div>
+    <div class="stat g"><div class="n">4+2</div><div class="l">Spiral arms + bar</div></div>
+    <div class="stat"><div class="n">5</div><div class="l">Data surveys</div></div>
+    <div class="stat t"><div class="n">120</div><div class="l">FPS (offline)</div></div>
   </div>
 </div>
 
+<section class="wrap" id="data">
+  <div class="sec-tag">Master Catalog</div>
+  <h2>统一主星表 · The Unified Catalog</h2>
+  <p class="lead">176 个银河系球状星团，由 4 个权威星表交叉证认合并而成。名称规范化
+    （Messier/常用名 → Harris 主键）+ 坐标交叉匹配（容差 3″），多源字段按精度优先级融合。
+    135 个星团拥有完整 6D 相空间（位置 + 自行 + 视向速度）。</p>
+
+  <div class="cols">
+    <div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>字段覆盖</th><th>数量</th></tr></thead>
+          <tbody>
+            <tr><td>距离 distance</td><td>170</td></tr>
+            <tr><td>自行 proper motion (Gaia EDR3)</td><td>170</td></tr>
+            <tr><td>质量 mass</td><td>118</td></tr>
+            <tr><td>金属丰度 [Fe/H]</td><td>139</td></tr>
+            <tr><td>视向速度 radial velocity</td><td>141</td></tr>
+            <tr><td><b>完整 6D 相空间</b></td><td><b class="ok">135</b></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="note">字段合并优先级：距离 Baumgardt&amp;Hilker &gt; Gaia 视差 &gt; Harris；坐标/自行取 Gaia EDR3；金属丰度取 Harris；质量/结构取 Baumgardt &amp; Hilker。</div>
+    </div>
+    <div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>著名星团抽查</th><th>距离</th><th>[Fe/H]</th><th>偏心率</th></tr></thead>
+          <tbody>
+            <tr><td>47 Tuc (NGC 104)</td><td>4.41 kpc</td><td>−0.76</td><td>0.12</td></tr>
+            <tr><td>ω Cen (NGC 5139)</td><td>5.20 kpc</td><td>−1.62</td><td>0.69</td></tr>
+            <tr><td>M13 (NGC 6205)</td><td>6.60 kpc</td><td>−1.54</td><td>0.81</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="note">与文献值精确一致。ω Cen 质量 3.55×10⁶ M☉ 为银河系最大球状星团。</div>
+      <div style="margin-top:16px">
+        <span class="chip">master_catalog.csv</span>
+        <span class="chip">master_catalog.json</span>
+        <span class="chip">orbits.json</span>
+        <span class="chip">39 fields</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="wrap" id="sources">
+  <div class="sec-tag">Data Sources</div>
+  <h2>数据来源与文献 · Sources &amp; References</h2>
+  <p class="lead">所有星表均经 CDS VizieR 官方目录号逐一核实，并附原始文献引用。
+    数据版权归属各原作者/机构，本项目仅为研究/教学用途的汇编与可视化。</p>
+  <div class="srcs">
+    <div class="src"><div class="t">Harris 1996 / 2010</div><div class="cat">VizieR VII/202/catalog</div>
+      <div class="d">球状星团标准星表：坐标/距离/光度/[Fe-H]/E(B-V)/视向速度/结构/弛豫时间/密度（38 列）</div>
+      <div class="n">147 clusters · Harris W.E. 1996, AJ, 112, 1487</div></div>
+    <div class="src"><div class="t">Vasiliev &amp; Baumgardt 2021</div><div class="cat">VizieR J/MNRAS/505/5978</div>
+      <div class="d">Gaia EDR3 精确自行 + 视差（→距离），目前最精确的球状星团天体测量</div>
+      <div class="n">170 clusters · MNRAS, 505, 5978</div></div>
+    <div class="src"><div class="t">Baumgardt &amp; Hilker 2018</div><div class="cat">VizieR J/MNRAS/478/1520</div>
+      <div class="d">质量/质光比/半光半径/弛豫时间/逃逸速度/中心速度弥散（动力学参数）</div>
+      <div class="n">112 clusters · MNRAS, 478, 1520</div></div>
+    <div class="src"><div class="t">Bica et al. 2019</div><div class="cat">VizieR J/AJ/157/12</div>
+      <div class="d">银河系星团与候选总表（含新发现的球状星团候选）</div>
+      <div class="n">10978 objects · AJ, 157, 12</div></div>
+    <div class="src"><div class="t">galstreams — Mateu 2023</div><div class="cat">github.com/cmateu/galstreams</div>
+      <div class="d">最全面的银河恒星流 6D 轨迹汇编：GD-1、Pal5、Orphan-Chenab、Cetus、ATLAS-Aliqa Uma 等</div>
+      <div class="n">124 streams · MNRAS, 520, 5225</div></div>
+    <div class="src"><div class="t">Galaxy model — Reid+2019 / Vallée 2017 / Wegg+2015</div><div class="cat">spiral arms &amp; bar</div>
+      <div class="d">旋臂对数螺旋参数（Reid 2019 VLBI 视差实测 + Vallée 2017 综述）；中心棒半长/方位（Wegg 2015）</div>
+      <div class="n">ApJ 885,131 · ApJ 834,151 · MNRAS 450,4050</div></div>
+  </div>
+</section>
+
+<section class="wrap" id="model">
+  <div class="sec-tag">Galaxy &amp; Orbits</div>
+  <h2>银河系模型与轨道积分 · Galaxy Model &amp; Orbits</h2>
+  <div class="cols">
+    <div>
+      <p class="lead" style="margin-bottom:12px"><b style="color:var(--txt)">旋臂 / 棒 / 核球</b>（科学参数化粒子仿真）</p>
+      <ul class="clean">
+        <li><b>4 条主臂</b>（Scutum-Centaurus、Sagittarius-Carina、Perseus、Norma-Outer）+ Outer 臂 + 本地臂（猎户支臂）</li>
+        <li>对数螺旋模型，螺距角 8–16°（Reid 2019 / Vallée 2017）</li>
+        <li><b>中心棒</b>：半长 5 kpc、偏 28°（Wegg 2015）+ 花生状核球</li>
+        <li>太阳位于本地臂（Orion Spur）</li>
+      </ul>
+      <div class="eq">R(β) = R_ref · exp( −(β − β_ref) · tan ψ )</div>
+    </div>
+    <div>
+      <p class="lead" style="margin-bottom:12px"><b style="color:var(--txt)">轨道积分</b>（135 条平滑轨道）</p>
+      <ul class="clean">
+        <li>引力势 <b>MWPotential2014</b>（Hernquist 核球 + Miyamoto-Nagai 盘 + NFW 晕）</li>
+        <li>数值标定 v<sub>c</sub>(R☉) = 238 km/s；自实现 IAU 1958 银道变换</li>
+        <li>scipy <b>DOP853</b>（8 阶 Runge-Kutta）反推 3 Gyr，rtol=1e-7</li>
+        <li>输出 R_peri / R_apo / 偏心率 / z_max / 顺逆行</li>
+      </ul>
+      <div style="margin-top:10px">
+        <span class="chip">R☉ = 8.275 kpc</span>
+        <span class="chip">v☉ = (11.1, 251.24, 7.25) km/s</span>
+        <span class="chip">3 Gyr back-integration</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="wrap" id="validation">
+  <div class="sec-tag">Validation</div>
+  <h2>数据精确性校验 · Validation</h2>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>校验项</th><th>结果</th><th>状态</th></tr></thead>
+      <tbody>
+        <tr><td>各星表行数 vs VizieR</td><td>147 / 170 / 112 / 10978</td><td class="ok">✓ 一致</td></tr>
+        <tr><td>坐标一致性（Harris vs Gaia EDR3）</td><td>角距离中位数 0.048′（≈3″）</td><td class="ok">✓ 可靠</td></tr>
+        <tr><td>太阳处圆周速度</td><td>238.0 km/s</td><td class="ok">✓ MWPotential2014</td></tr>
+        <tr><td>47 Tuc 银道坐标</td><td>l=305.89°, b=−44.89°</td><td class="ok">✓ 文献 305.90, −44.89</td></tr>
+        <tr><td>轨道起点 vs 主星表坐标</td><td>偏差 ≈ 0.02 kpc</td><td class="ok">✓ 同一参考系</td></tr>
+        <tr><td>在线 3D 应用（headless 实测）</td><td>176 星团 / 124 流 / 0 JS 错误 / 120 fps</td><td class="ok">✓ 通过</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="wrap" id="gallery">
+  <div class="sec-tag">Gallery</div>
+  <h2>静态图 · Figures</h2>
+  <div class="gallery">
+    <div class="gitem"><img src="figures/01_aitoff_sky.png" alt="all-sky"><div class="c">全天 Aitoff 投影（金属丰度）</div></div>
+    <div class="gitem"><img src="figures/02_galactocentric_xyz.png" alt="xyz"><div class="c">银心俯视 / 侧视 / 子午面</div></div>
+    <div class="gitem"><img src="figures/03_metallicity.png" alt="feh"><div class="c">金属丰度双峰 + [Fe/H]–R_gc</div></div>
+    <div class="gitem"><img src="figures/04_luminosity_mass.png" alt="lum"><div class="c">光度函数 + 质量分布</div></div>
+    <div class="gitem"><img src="figures/05_orbital_phase.png" alt="orbit"><div class="c">轨道相空间（R_apo–L_z 等）</div></div>
+    <div class="gitem"><img src="figures/06_structure.png" alt="struct"><div class="c">质量-半径 / σ₀–v_esc</div></div>
+    <div class="gitem"><img src="figures/viz_screenshot_arms.png" alt="arms"><div class="c">旋臂科学仿真（3D）</div></div>
+    <div class="gitem"><img src="figures/viz_screenshot_streams.png" alt="streams"><div class="c">124 条恒星流（3D）</div></div>
+    <div class="gitem"><img src="figures/viz_screenshot_orbits.png" alt="orbits3d"><div class="c">135 条平滑轨道（3D）</div></div>
+  </div>
+</section>
+
+<section class="wrap" id="reproduce">
+  <div class="sec-tag">Reproduce</div>
+  <h2>如何复现 · Reproduce</h2>
+  <div class="cols">
+    <div>
+<pre><span class="c"># 克隆仓库</span>
+git clone git@github.com:jianxing-chen/globular-cluster-atlas.git
+cd globular-cluster-atlas
+
+<span class="c"># 直接打开 3D 应用（零安装）</span>
+open viz/index.html        <span class="c"># macOS</span>
+<span class="c"># start viz\index.html   # Windows</span>
+<span class="c"># xdg-open viz/index.html# Linux</span></pre>
+    </div>
+    <div>
+<pre><span class="c"># 复现数据流水线（可选）</span>
+cd scripts
+python3 download_catalogs.py   <span class="c"># 1 VizieR 下载</span>
+python3 parse_and_validate.py  <span class="c"># 2 解析+校验</span>
+python3 build_master.py        <span class="c"># 3 合并主星表</span>
+python3 integrate_orbits.py    <span class="c"># 4 轨道积分</span>
+python3 process_streams.py     <span class="c"># 5 恒星流</span>
+python3 make_figures.py        <span class="c"># 6 静态图</span>
+python3 export_viz_data.py     <span class="c"># 7 打包 Web 数据</span></pre>
+      <div class="note">依赖：numpy · pandas · matplotlib · scipy（轨道/绘图全自实现，无需 astropy/galpy）</div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="lic">
+      Milky Way Globular Cluster Atlas · MIT License © Jianxing Chen<br>
+      <a href="https://github.com/jianxing-chen/globular-cluster-atlas">GitHub</a> ·
+      <a href="viz/index.html">3D Explorer</a> ·
+      Data via <a href="https://vizier.cds.unistra.fr/">CDS VizieR</a> &amp; galstreams
+    </div>
+    <p class="disclaimer">数据版权归原作者所有：Harris 1996/2010 · Vasiliev &amp; Baumgardt 2021 ·
+      Baumgardt &amp; Hilker 2018 · Bica et al. 2019 · galstreams (Mateu 2023)。
+      本项目仅为研究/教学用途的汇编与可视化。</p>
+  </div>
+</footer>
+
 <script>
-// 星点背景
 (function(){
-  const s=document.getElementById('stars'),n=90;
+  const s=document.getElementById('stars'),n=110;
   for(let i=0;i<n;i++){
     const d=document.createElement('i');
-    d.style.left=Math.random()*100+'%';
-    d.style.top=Math.random()*100+'%';
-    d.style.animationDelay=(Math.random()*3)+'s';
+    d.style.left=Math.random()*100+'%'; d.style.top=Math.random()*100+'%';
+    d.style.animationDelay=(Math.random()*3.5)+'s';
     d.style.width=d.style.height=(Math.random()*2+0.6)+'px';
     s.appendChild(d);
   }
-  // 倒计时
-  let t=4;const el=document.getElementById('cd');
-  const iv=setInterval(()=>{t--;if(t<=0){clearInterval(iv);el.textContent='0';}else el.textContent=t;},1000);
 })();
 </script>
 </body>
