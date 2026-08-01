@@ -76,18 +76,24 @@ h1{font-size:clamp(34px,6vw,58px);font-weight:800;letter-spacing:.01em;line-heig
 .btn-ghost{background:rgba(120,160,255,.07);color:var(--txt);border:1px solid var(--line)}
 .btn-ghost:hover{background:rgba(120,160,255,.16);border-color:var(--acc2);text-decoration:none}
 
-.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px;margin:48px 0 8px}
-.stat{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px 16px;text-align:center}
-.stat .n{font-family:var(--mono);font-size:30px;font-weight:700;color:var(--acc);letter-spacing:-.01em}
-.stat .l{font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--faint);text-transform:uppercase;margin-top:5px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:16px;margin:56px 0 4px}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px 16px;text-align:center;
+  transition:border-color .2s,transform .2s}
+.stat:hover{border-color:var(--line2);transform:translateY(-2px)}
+.stat .n{font-family:var(--mono);font-size:32px;font-weight:700;color:var(--acc);letter-spacing:-.01em;line-height:1}
+.stat .l{font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;color:var(--faint);text-transform:uppercase;margin-top:8px}
 .stat.g .n{color:var(--warm)} .stat.t .n{color:var(--teal)}
 
-section{padding:44px 0;border-top:1px solid var(--line)}
-.sec-tag{font-family:var(--mono);font-size:10.5px;letter-spacing:.3em;color:var(--acc);text-transform:uppercase;display:flex;align-items:center;gap:10px;margin-bottom:8px}
+section{padding:74px 0 62px;border-top:1px solid var(--line)}
+section:first-of-type{border-top:none}
+.sec-tag{font-family:var(--mono);font-size:10.5px;letter-spacing:.34em;color:var(--acc);text-transform:uppercase;display:flex;align-items:center;gap:10px;margin-bottom:14px}
 .sec-tag::before{content:"";width:24px;height:1px;background:var(--acc)}
-h2{font-size:clamp(22px,3.2vw,30px);font-weight:800;letter-spacing:.01em;margin-bottom:16px}
-p.lead{color:var(--dim);font-size:15.5px;max-width:760px;margin-bottom:20px}
-.cols{display:grid;grid-template-columns:1fr 1fr;gap:34px;align-items:start}
+h2{font-size:clamp(23px,3.2vw,31px);font-weight:800;letter-spacing:.005em;margin-bottom:18px}
+p.lead{color:var(--dim);font-size:15.5px;max-width:720px;margin-bottom:30px;line-height:1.75}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:38px;align-items:start}
+.col-head{font-size:15px;font-weight:700;color:var(--txt);margin:2px 0 16px;letter-spacing:.01em;
+  display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.col-head span{font-family:var(--mono);font-size:11px;font-weight:400;color:var(--faint);letter-spacing:.03em}
 .cols>*{min-width:0}
 @media(max-width:760px){.cols{grid-template-columns:1fr}}
 
@@ -100,16 +106,16 @@ tr:last-child td{border-bottom:none}
 tr:hover td{background:rgba(120,160,255,.05)}
 .note{font-size:11.5px;color:var(--faint);font-family:var(--mono);margin-top:10px;letter-spacing:.02em}
 
-.srcs{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
-.src{display:block;background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:16px 18px;
+.srcs{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+.src{display:block;background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:18px 20px;
   transition:border-color .2s,transform .2s;color:inherit}
 .src:hover{border-color:var(--acc2);transform:translateY(-2px);text-decoration:none}
 .src .t{font-size:13.5px;font-weight:700;color:var(--txt);display:flex;align-items:center;justify-content:space-between}
 .src .t .ext{color:var(--faint);font-size:12px;transition:color .2s}
 .src:hover .t .ext{color:var(--acc)}
-.src .cat{font-family:var(--mono);font-size:10px;color:var(--acc);letter-spacing:.08em;margin-top:3px}
-.src .d{font-size:12px;color:var(--dim);margin-top:7px;line-height:1.5}
-.src .n{font-family:var(--mono);font-size:10.5px;color:var(--warm);margin-top:7px}
+.src .cat{font-family:var(--mono);font-size:10px;color:var(--acc);letter-spacing:.08em;margin-top:4px}
+.src .d{font-size:12px;color:var(--dim);margin-top:8px;line-height:1.55}
+.src .n{font-family:var(--mono);font-size:10.5px;color:var(--faint);margin-top:9px}
 
 ul.clean{list-style:none;margin:6px 0}
 ul.clean li{padding:8px 0 8px 24px;position:relative;color:var(--dim);font-size:14px;border-bottom:1px solid rgba(120,160,255,.06)}
@@ -201,7 +207,7 @@ footer .lic{font-family:var(--mono);font-size:11px;color:var(--faint);letter-spa
   </div>
 </header>
 
-<div class="wrap" id="overview">
+<div class="wrap" id="overview" style="margin-top:44px">
   <div class="stats">
     <div class="stat"><div class="n">176</div><div class="l">Globular clusters</div></div>
     <div class="stat t"><div class="n">135</div><div class="l">Integrated orbits</div></div>
@@ -298,7 +304,7 @@ footer .lic{font-family:var(--mono);font-size:11px;color:var(--faint);letter-spa
   <h2>Galaxy Model &amp; Orbit Integration</h2>
   <div class="cols">
     <div>
-      <p class="lead" style="margin-bottom:12px"><b style="color:var(--txt)">Spiral arms / bar / bulge</b> (science-parameterized particles)</p>
+      <h3 class="col-head">Spiral arms / bar / bulge <span>science-parameterized particles</span></h3>
       <ul class="clean">
         <li><b>4 major arms</b> (Scutum-Centaurus, Sagittarius-Carina, Perseus, Norma-Outer) + Outer arm + Local Arm (Orion Spur)</li>
         <li>Log-spiral model, pitch angles 8–16° (Reid 2019 / Vallée 2017)</li>
@@ -308,7 +314,7 @@ footer .lic{font-family:var(--mono);font-size:11px;color:var(--faint);letter-spa
       <div class="eq">R(β) = R_ref · exp( −(β − β_ref) · tan ψ )</div>
     </div>
     <div>
-      <p class="lead" style="margin-bottom:12px"><b style="color:var(--txt)">Orbit integration</b> (135 smooth orbits)</p>
+      <h3 class="col-head">Orbit integration <span>135 smooth orbits</span></h3>
       <ul class="clean">
         <li>Potential <b>MWPotential2014</b> (Hernquist bulge + Miyamoto-Nagai disk + NFW halo)</li>
         <li>Calibrated to v<sub>c</sub>(R☉) = 238 km/s; self-implemented IAU 1958 transform</li>
