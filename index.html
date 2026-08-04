@@ -117,6 +117,19 @@ tr:hover td{background:rgba(120,160,255,.05)}
 .src .d{font-size:12px;color:var(--dim);margin-top:8px;line-height:1.55}
 .src .n{font-family:var(--mono);font-size:10.5px;color:var(--faint);margin-top:9px}
 
+.apps{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px}
+.appcard{display:block;background:var(--panel);border:1px solid var(--line);border-radius:13px;overflow:hidden;
+  transition:border-color .2s,transform .2s;color:inherit}
+.appcard:hover{border-color:var(--acc2);transform:translateY(-2px);text-decoration:none}
+.appcard img{width:100%;display:block;aspect-ratio:16/10;object-fit:cover;border-bottom:1px solid var(--line)}
+.appcard .body{padding:18px 20px 20px}
+.appcard .t{font-size:15px;font-weight:700;color:var(--txt)}
+.appcard .d{font-size:12.5px;color:var(--dim);margin-top:8px;line-height:1.55}
+.appcard .go{margin-top:14px;display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);
+  font-size:11.5px;letter-spacing:.08em;color:var(--acc);padding:8px 14px;border:1px solid var(--line2);
+  border-radius:9px;transition:border-color .2s,color .2s,background .2s}
+.appcard:hover .go{background:rgba(120,160,255,.1);border-color:var(--acc2)}
+
 ul.clean{list-style:none;margin:6px 0}
 ul.clean li{padding:8px 0 8px 24px;position:relative;color:var(--dim);font-size:14px;border-bottom:1px solid rgba(120,160,255,.06)}
 ul.clean li:last-child{border-bottom:none}
@@ -176,6 +189,7 @@ footer .lic{font-family:var(--mono);font-size:11px;color:var(--faint);letter-spa
     <div class="logo">GC Atlas</div>
     <div class="links">
       <a href="#overview">Overview</a>
+      <a href="#apps">Apps</a>
       <a href="#data">Data</a>
       <a href="#sources">Sources</a>
       <a href="#model">Galaxy</a>
@@ -183,7 +197,7 @@ footer .lic{font-family:var(--mono);font-size:11px;color:var(--faint);letter-spa
       <a href="#gallery">Gallery</a>
       <a href="#reproduce">Reproduce</a>
     </div>
-    <a class="cta-nav" href="viz/index.html">▶ Launch 3D</a>
+    <a class="cta-nav" href="#apps">Apps</a>
   </div>
 </nav>
 
@@ -203,6 +217,7 @@ footer .lic{font-family:var(--mono);font-size:11px;color:var(--faint);letter-spa
 
   <div class="hero-btns">
     <a class="btn btn-main" href="viz/index.html">▶&nbsp; Launch 3D Atlas</a>
+    <a class="btn btn-ghost" href="plotter/">Open Plotter</a>
     <a class="btn btn-ghost" href="https://github.com/jianxing-chen/globular-cluster-atlas">GitHub Repo&nbsp;↗</a>
   </div>
 </header>
@@ -217,6 +232,29 @@ footer .lic{font-family:var(--mono);font-size:11px;color:var(--faint);letter-spa
     <div class="stat t"><div class="n">120</div><div class="l">FPS (offline)</div></div>
   </div>
 </div>
+
+<section class="wrap" id="apps">
+  <div class="sec-tag">App Hub</div>
+  <h2>Applications</h2>
+  <div class="apps">
+    <a class="appcard" href="viz/index.html">
+      <img src="figures/viz_screenshot_home.png" alt="3D Explorer">
+      <div class="body">
+        <div class="t">3D Explorer</div>
+        <div class="d">Interactive 3D atlas — 176 clusters, 135 orbits, 124 streams, spiral arms &amp; bar</div>
+        <span class="go">→ viz/</span>
+      </div>
+    </a>
+    <a class="appcard" href="plotter/index.html">
+      <img src="figures/viz_screenshot_arms.png" alt="Plotter"><!-- TODO(Task9): swap to figures/viz_screenshot_plotter.png once the plotter screenshot lands -->
+      <div class="body">
+        <div class="t">Plotter</div>
+        <div class="d">APJ-style figure workbench — check clusters, choose parameters, export publication figures</div>
+        <span class="go">→ plotter/</span>
+      </div>
+    </a>
+  </div>
+</section>
 
 <section class="wrap" id="data">
   <div class="sec-tag">Master Catalog</div>
