@@ -342,30 +342,28 @@ CL.forEach((c, i) => {
   vis[i] = 1;
 });
 // 相对大小编码物理参数: M_V(光度) / Mass / r_h(物理半径) / Equal
+// 所有模式统一映射到相同尺寸范围 [S0, S0+RANGE], 仅相对分布不同
 let sizeBy = 'mv';
+const S0 = 6.0, SRANGE = 9.0;
 function computeSizes() {
   for (let i = 0; i < N; i++) {
     const c = CL[i];
-    let s;
+    let t;   // 物理参数归一化到 0..1
     switch (sizeBy) {
-      case 'mass': {                       // log10(M/M☉): 4 -> 1e4, 6.5 -> 3e6
-        const lg = c.mass != null ? Math.log10(c.mass) : 5;
-        s = 3.0 + Math.max(0, (lg - 4)) * 2.6;
+      case 'mass':                       // log10(M/M☉): 4 -> 1e4, 6.55 -> 3.5e6
+        t = clamp01(((c.mass != null ? Math.log10(c.mass) : 5) - 4) / 2.55);
         break;
-      }
-      case 'rh': {                         // 半光半径 0-8 pc
-        const rh = c.rh != null ? Math.min(8, Math.max(0, c.rh)) : 2;
-        s = 3.0 + rh * 0.85;
+      case 'rh':                         // 半光半径 0..8 pc
+        t = clamp01((c.rh != null ? c.rh : 2) / 8);
         break;
-      }
-      case 'equal': s = 5.2; break;
+      case 'equal': t = 0.5; break;      // 统一中等尺寸
       case 'mv':
-      default: {                           // M_V: -3(暗) -> -11(亮)
+      default: {                         // M_V: -3(暗) .. -10.5(亮)
         const m = c.MV == null ? -6 : c.MV;
-        s = 3.5 + Math.max(0, (-m - 3)) * 1.5;
+        t = clamp01((-m - 3) / 7.5);
       }
     }
-    siz[i] = s;
+    siz[i] = S0 + t * SRANGE;
   }
   if (geo) geo.attributes.aSize.needsUpdate = true;
 }
