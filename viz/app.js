@@ -279,6 +279,12 @@ const ringGroup = new THREE.Group();
   const mat = new THREE.LineBasicMaterial({ color: 0x3a4a80, transparent: true,
     opacity: i === 1 ? 0.5 : 0.22 });
   ringGroup.add(new THREE.Line(geo, mat));
+  // 太阳圈 (R=R☉=8.275kpc, 太阳绕银心公转轨道圈) 加标签, 避免与太阳系混淆
+  if (i === 1) {
+    const lab = makeLabel('Solar circle R=R☉', V(r, 0, 0));
+    lab.scale.multiplyScalar(0.65);
+    ringGroup.add(lab);
+  }
 });
 scene.add(ringGroup);
 
