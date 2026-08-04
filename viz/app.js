@@ -278,6 +278,64 @@ function buildStreams() {
 }
 buildStreams();
 
+// ================= 矮星系 (LVDB, Pace 2025) =================
+// MW 矮星系/M31矮星系/近场矮星系/大星系本体, 渲染为半透明椭球光斑(按半光半径).
+const dwarfGroup = new THREE.Group(); dwarfGroup.visible = true; scene.add(dwarfGroup);
+const dwarfLabels = new THREE.Group(); dwarfLabels.visible = false; dwarfGroup.add(dwarfLabels);
+const DWARF_COLS = { mw: 0x9fb4ff, m31: 0xffb08a, field: 0x8adfC8, galaxy: 0xffd27f };
+const DWARF_OPACITY = { mw: 0.8, m31: 0.5, field: 0.4, galaxy: 0.85 };
+// 默认只显示 MW 矮星系(最重要); M31/field 用分类开关单独控制
+const dwarfClsVisible = { mw: true, m31: false, field: false, galaxy: true };
+function buildDwarfs() {
+  if (typeof DWARF_DATA === 'undefined') return;
+  const tex = dotTexture();
+  DWARF_DATA.dwarfs.forEach(d => {
+    const colr = new THREE.Color(DWARF_COLS[d.cls] || 0x9fb4ff);
+    const v = V(d.x, d.y, d.z);
+    // 光斑大小: 半光半径 rh(pc)->kpc 映射到场景, 太大(LMC/SMC/Sgr)限幅
+    let rh_kpc = d.rh ? d.rh / 1000.0 : 0.4;
+    rh_kpc = Math.max(0.35, Math.min(rh_kpc, 3.0));
+    // 弥散光斑: 沿随机方向撒点成椭球
+    const n = 60, pos = [], cols = [];
+    for (let i = 0; i < n; i++) {
+      const u = Math.random()*Math.PI*2, cv = Math.random()*2-1, sv = Math.sqrt(1-cv*cv);
+      const rr = Math.pow(Math.random(), 0.5) * rh_kpc;
+      pos.push(v.x + rr*sv*Math.cos(u), v.y + rr*cv*0.7, v.z + rr*sv*Math.sin(u));
+      const I = (1 - rr/rh_kpc*0.7) * (0.4 + 0.5*Math.random());
+      cols.push(colr.r*I, colr.g*I, colr.b*I);
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    g.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3));
+    const m = new THREE.Points(g, new THREE.PointsMaterial({ size: 1.4, map: tex,
+      vertexColors: true, transparent: true, opacity: DWARF_OPACITY[d.cls] || 0.6,
+      depthWrite: false, blending: THREE.AdditiveBlending }));
+    m.userData.dwarf = d; m.userData.cls = d.cls;
+    dwarfGroup.add(m);
+    // 中心亮点
+    const core = star('rgba(255,255,255,0.9)', Math.max(0.8, rh_kpc*1.2));
+    core.position.copy(v); core.userData.cls = d.cls;
+    dwarfGroup.add(core);
+    // 名称标签
+    const lab = makeLabel(d.name, v); lab.scale.multiplyScalar(0.85);
+    lab.position.y += rh_kpc + 0.4; lab.userData.cls = d.cls;
+    dwarfLabels.add(lab);
+  });
+  applyDwarfCls();
+}
+// 按分类控制可见性
+function applyDwarfCls() {
+  const master = dwarfGroup.visible;
+  dwarfGroup.children.forEach(o => {
+    if (o === dwarfLabels) return;
+    if (o.userData.cls) o.visible = master && dwarfClsVisible[o.userData.cls];
+  });
+  dwarfLabels.children.forEach(o => {
+    if (o.userData.cls) o.visible = dwarfClsVisible[o.userData.cls] && $('t-label').checked;
+  });
+}
+buildDwarfs();
+
 // ---------- galactic centre + sun ----------
 function star(color, size) {
   const c = document.createElement('canvas'); c.width = c.height = 128;
@@ -541,6 +599,25 @@ function showInfo(c) {
   selMarker.position.copy(V(c.x, c.y, c.z)); selMarker.visible = true;
   showSelOrbit(c);
 }
+// ---------- 矮星系信息面板 ----------
+const DWARF_TYPE = { mw: 'MW satellite', m31: 'M31 satellite', field: 'Local Volume field', galaxy: 'galaxy' };
+function showDwarfInfo(d) {
+  selected = { x: d.x, y: d.y, z: d.z, _dwarf: d };          // 供 Center view / Full data 用
+  $('i-name').innerHTML = `${d.name}<span class="als">${d.host ? d.host : ''}</span>`;
+  $('i-alias').textContent = DWARF_TYPE[d.cls] || d.cls;
+  $('i-grid').innerHTML =
+    cell('Type', DWARF_TYPE[d.cls] || d.cls) +
+    cell('Distance', fmt(d.dist, 1), 'kpc') +
+    cell(mx('R', 'gc'), fmt(d.rgc, 1), 'kpc') +
+    cell(mx('M', 'V'), fmt(d.MV, 2), 'mag') +
+    cell('[Fe/H]', fmt(d.feh, 2), 'dex') +
+    cell(mx('r', 'h'), fmt(d.rh, 1), 'pc') +
+    cell(mx('V', 'r'), fmt(d.vr, 1), 'km/s') +
+    cell('log M★', fmt(d.mass, 2), 'M☉');
+  $('info').classList.add('show');
+  selMarker.position.copy(V(d.x, d.y, d.z)); selMarker.visible = true;
+  showSelOrbit(null);                              // 矮星系无轨道
+}
 $('i-close').onclick = () => { $('info').classList.remove('show'); selMarker.visible = false; showSelOrbit(null); selected = null; };
 $('i-goto').onclick = () => { if (selected) flyTo(V(selected.x, selected.y, selected.z), 6); };
 
@@ -578,7 +655,27 @@ function showDetail(c) {
   $('detail-body').innerHTML = html;
   $('detail').classList.add('show');
 }
-$('i-detail').onclick = () => { if (selected) showDetail(selected); };
+// ---------- 矮星系专属详情 ----------
+function showDwarfDetail(d) {
+  const has = v => v != null && !isNaN(v);
+  let html = '<table class="d-table">';
+  html += `<tr class="d-sec"><td colspan="2">Classification</td></tr>`;
+  html += row2('Type', DWARF_TYPE[d.cls] || d.cls) + row2('Host', d.host || '—');
+  html += `<tr class="d-sec"><td colspan="2">Position &amp; Distance</td></tr>`;
+  html += row2('Distance', fmt(d.dist, 1), 'kpc') + row2(mx('R', 'gc'), fmt(d.rgc, 1), 'kpc');
+  html += `<tr class="d-sec"><td colspan="2">Photometry &amp; Metallicity</td></tr>`;
+  html += row2(mx('M', 'V'), fmt(d.MV, 2), 'mag') + row2('[Fe/H]', fmt(d.feh, 2), 'dex');
+  html += `<tr class="d-sec"><td colspan="2">Structure &amp; Kinematics</td></tr>`;
+  html += row2(mx('r', 'h'), fmt(d.rh, 1), 'pc') + row2(mx('V', 'r'), fmt(d.vr, 1), 'km/s');
+  html += row2('log M★', has(d.mass) ? fmt(d.mass, 2) : '—', 'M☉');
+  html += `<tr class="d-sec"><td colspan="2">Source</td></tr>`;
+  html += row2('Catalog', 'LVDB v1.1.0 (Pace 2025)');
+  html += '</table>';
+  $('detail-body').innerHTML = html;
+  $('detail').classList.add('show');
+}
+$('i-detail').onclick = () => { if (!selected) return;
+  if (selected._dwarf) showDwarfDetail(selected._dwarf); else showDetail(selected); };
 $('detail-close').onclick = () => $('detail').classList.remove('show');
 
 // ---------- picking ----------
@@ -592,10 +689,16 @@ renderer.domElement.addEventListener('pointerup', e => {
   mouse.x = (e.clientX / innerWidth) * 2 - 1;
   mouse.y = -(e.clientY / innerHeight) * 2 + 1;
   ray.setFromCamera(mouse, camera);
+  // 先测球状星团(优先, 点云)
   const hit = ray.intersectObject(points);
   if (hit.length) {
     const c = CL[hit[0].index];
-    if (visArr[hit[0].index] > 0.5) showInfo(c);
+    if (visArr[hit[0].index] > 0.5) { showInfo(c); return; }
+  }
+  // 再测矮星系
+  if (dwarfGroup.visible) {
+    const dh = ray.intersectObjects(dwarfGroup.children.filter(o => o.isPoints), false);
+    if (dh.length && dh[0].object.userData.dwarf) { showDwarfInfo(dh[0].object.userData.dwarf); return; }
   }
 });
 // hover: 点亮星团 + 悬浮信息卡
@@ -695,10 +798,15 @@ $('t-orbit').onchange = e => { orbitGroup.visible = e.target.checked; };
 $('t-arms').onchange = e => { armsGroup.visible = barGroup.visible = e.target.checked; };
 $('t-streams').onchange = e => { streamsGroup.visible = e.target.checked;
   streamLabels.visible = e.target.checked && $('t-label').checked; };
+$('t-dwarf').onchange = e => { dwarfClsVisible.mw = e.target.checked;
+  dwarfClsVisible.galaxy = e.target.checked; applyDwarfCls(); };
+$('t-dwarf-m31').onchange = e => { dwarfClsVisible.m31 = e.target.checked; applyDwarfCls(); };
+$('t-dwarf-field').onchange = e => { dwarfClsVisible.field = e.target.checked; applyDwarfCls(); };
 $('t-disc').onchange = e => { disc.visible = e.target.checked; };
 $('t-ring').onchange = e => { ringGroup.visible = e.target.checked; };
 $('t-label').onchange = e => { labelGroup.visible = e.target.checked;
-  streamLabels.visible = e.target.checked && $('t-streams').checked; };
+  streamLabels.visible = e.target.checked && $('t-streams').checked;
+  applyDwarfCls(); };
 $('t-bloom').onchange = e => { bloomOn = e.target.checked; };
 
 // view presets
@@ -768,6 +876,7 @@ function resetAll() {
   applyFilters();
   // 5. 开关回默认
   const defs = { 't-orbit': false, 't-streams': false, 't-arms': true,
+                 't-dwarf': true, 't-dwarf-m31': false, 't-dwarf-field': false,
                  't-disc': true, 't-ring': true, 't-label': false, 't-bloom': true };
   for (const [id, v] of Object.entries(defs)) {
     const el = $(id);

@@ -257,6 +257,9 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;
       <label class="tgl"><span>Show orbits</span><input type="checkbox" id="t-orbit"><span class="sw"></span></label>
       <label class="tgl"><span>Spiral arms</span><input type="checkbox" id="t-arms" checked><span class="sw"></span></label>
       <label class="tgl"><span>Stellar streams</span><input type="checkbox" id="t-streams"><span class="sw"></span></label>
+      <label class="tgl"><span>Dwarf galaxies (MW)</span><input type="checkbox" id="t-dwarf" checked><span class="sw"></span></label>
+      <label class="tgl"><span style="color:var(--dim)">↳ M31 satellites</span><input type="checkbox" id="t-dwarf-m31"><span class="sw"></span></label>
+      <label class="tgl"><span style="color:var(--dim)">↳ Local Volume</span><input type="checkbox" id="t-dwarf-field"><span class="sw"></span></label>
       <label class="tgl"><span>Galactic disc</span><input type="checkbox" id="t-disc" checked><span class="sw"></span></label>
       <label class="tgl"><span>Reference rings</span><input type="checkbox" id="t-ring" checked><span class="sw"></span></label>
       <label class="tgl"><span>Labels</span><input type="checkbox" id="t-label"><span class="sw"></span></label>
@@ -321,6 +324,7 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;
 
 <script src="../webdata/gc_data.js"></script>
 <script src="../webdata/streams_data.js"></script>
+<script src="../webdata/dwarf_data.js"></script>
 <script src="assets/three.min.js"></script>
 <script src="assets/OrbitControls.classic.js"></script>
 <script src="app.js"></script>

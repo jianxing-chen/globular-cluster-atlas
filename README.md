@@ -84,6 +84,7 @@ python3 parse_and_validate.py   # 2 parse + validate
 python3 build_master.py         # 3 merge master catalog
 python3 integrate_orbits.py     # 4 orbit integration (MWPotential2014)
 python3 process_streams.py      # 5 stellar streams (clone galstreams to /tmp/galstreams first)
+python3 process_dwarfs.py       # 6 dwarf galaxies (LVDB, downloads comb_all.csv to data/raw first)
 python3 make_figures.py         # 6 static figures
 python3 export_viz_data.py      # 7 bundle data for the web app
 ```
@@ -102,6 +103,7 @@ All catalogs verified against their official CDS VizieR identifiers.
 | [Baumgardt & Hilker 2018](https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=J/MNRAS/478/1520) | `J/MNRAS/478/1520/table2` | Masses, M/L, half-light radii, relaxation, escape velocities, σ₀ | 112 |
 | [Bica et al. 2019](https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=J/AJ/157/12) | `J/AJ/157/12/table3` | Milky Way clusters & candidates (incl. new GC candidates) | 10978 |
 | [galstreams (Mateu 2023)](https://github.com/cmateu/galstreams) | `github.com/cmateu/galstreams` | Stellar-stream 6-D tracks (GD-1, Pal 5, Orphan-Chenab, …) | 124 streams |
+| [Local Volume Database (Pace 2025)](https://github.com/apace7/local_volume_database) | `github.com/apace7/local_volume_database` | Nearby dwarf galaxies & star clusters (dSph/UFD/M31 satellites), LVDB v1.1.0, CC0 | 176 objects |
 
 **Merge strategy** — names normalized (aliases → Harris key) + coordinate cross-match (3″).
 Priority: distance `Baumgardt&Hilker > Gaia parallax > Harris`; coordinates/PM from Gaia EDR3;
@@ -127,6 +129,15 @@ physically kin to the accreted GCs, together telling the Galaxy's merger history
 - **Teal** = general streams · **gold** = streams with a GC progenitor (Pal 5, ω Cen-Fimbulthul,
   NGC 3201-Gjöll, … auto-linked to the master catalog)
 - Rendered as point-density ribbons (smoothed spine + Gaussian cross-spread)
+
+### Dwarf galaxies (Local Volume Database)
+**176** nearby dwarf galaxies & star clusters (Pace 2025, LVDB v1.1.0, CC0), rendered as diffuse
+elliptical glows sized by half-light radius — completing the satellite-galaxy picture that the
+stellar streams are torn from (e.g. Sagittarius, currently being disrupted into the Sgr stream).
+- **MW satellites** (67, default on): Draco, Ursa Minor, Sculptor, Sextans, Carina, Fornax,
+  Leo I/II, Canes Venatici, Sagittarius, LMC/SMC, Crater II, Antlia II, Hercules, Boötes I–IV, …
+- **M31 satellites** (42) and **Local-Volume field dwarfs** (63) — optional toggles
+- Colour-coded by host (MW / M31 / field / galaxy); click for distance, M_V, [Fe/H], r_h, V_r, log M★
 
 ---
 
