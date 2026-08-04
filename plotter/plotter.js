@@ -184,7 +184,7 @@ function wireSelection() {
 }
 
 // ================= CONFIG =================
-// 默认配置 (Task 4 引入 setCfg 完整接线, 此处为初始 state)
+// 绘图配置状态: cfg 是唯一事实源, 一切控件变更经 setCfg(patch) 合并 → 同步控件显示 → draw().
 let cfg = {
   type:'scatter',          // scatter | hist | line | heat
   x:'rgc', y:'feh',
@@ -212,6 +212,77 @@ function fillParamSelects() {
     });
 }
 
+// 把 cfg 同步到控件显示状态(只写控件, 不触发事件循环; 供 setCfg/init 调用)
+function syncCfgControls() {
+  const seg = $('chart-type');
+  if (seg) seg.querySelectorAll('button[data-type]').forEach(b => {
+    b.classList.toggle('on', b.dataset.type === cfg.type);
+  });
+  const setVal = (id, v) => { const el = $(id); if (el) el.value = v; };
+  const setCb = (id, v) => { const el = $(id); if (el) el.checked = !!v; };
+  setVal('x-param', cfg.x);
+  setVal('y-param', cfg.y);
+  setVal('color-param', cfg.colorParam);
+  setVal('size-param', cfg.sizeParam);
+  setCb('color-mode', cfg.colorMode);
+  setCb('log-x', cfg.logX);
+  setCb('log-y', cfg.logY);
+  setCb('err-bars', cfg.errBars);
+  setVal('overlay-group', cfg.overlay);
+  setVal('line-mode', cfg.lineMode);
+  const bins = $('bin-count');
+  if (bins) bins.value = String(cfg.bins);
+  const binOut = $('bin-out');
+  if (binOut) binOut.textContent = String(cfg.bins);
+  // hist 无 Y 轴: 保持 Y/color/size 下拉可见但禁用
+  const histOnly = cfg.type === 'hist';
+  ['y-param', 'color-param', 'size-param'].forEach(id => {
+    const el = $(id);
+    if (el) el.disabled = histOnly;
+  });
+}
+
+// 合并配置补丁: Object.assign 到 cfg → 控件同步 → 重绘. 所有绘图控件都经此入口,
+// 保证 cfg 与控件永远一致(Task 5 渲染直接读 cfg).
+function setCfg(patch) {
+  Object.assign(cfg, patch);
+  syncCfgControls();
+  draw();
+}
+
+// 控件接线: 分段(chart-type/templates)用事件委托, 下拉/滑块/开关统一走 setCfg
+function wireCfgControls() {
+  const segClick = (id, sel, map) => {
+    const el = $(id);
+    if (!el) return;
+    el.addEventListener('click', e => {
+      const b = e.target.closest(sel);
+      if (!b) return;
+      const patch = map(b);
+      if (patch) setCfg(patch);
+    });
+  };
+  segClick('chart-type', 'button[data-type]', b => ({ type: b.dataset.type }));
+  // 模板按钮是动作不是状态: apply() 自行 setCfg + 设选中集, 不再二次 setCfg
+  segClick('templates', 'button[data-i]', b => {
+    const t = TEMPLATES[+b.dataset.i];
+    if (t) t.apply();
+    return null;
+  });
+  const bind = (id, fn) => { const el = $(id); if (el) el.addEventListener('change', fn); };
+  bind('x-param',      e => setCfg({ x: e.target.value }));
+  bind('y-param',      e => setCfg({ y: e.target.value }));
+  bind('color-param',  e => setCfg({ colorParam: e.target.value }));
+  bind('size-param',   e => setCfg({ sizeParam: e.target.value }));
+  bind('color-mode',   e => setCfg({ colorMode: e.target.checked }));
+  bind('bin-count',    e => setCfg({ bins: Number(e.target.value) }));
+  bind('log-x',        e => setCfg({ logX: e.target.checked }));
+  bind('log-y',        e => setCfg({ logY: e.target.checked }));
+  bind('err-bars',     e => setCfg({ errBars: e.target.checked }));
+  bind('overlay-group', e => setCfg({ overlay: e.target.value }));
+  bind('line-mode',    e => setCfg({ lineMode: e.target.value }));
+}
+
 // ================= RENDER =================
 const canvas = $('plot-canvas');
 const ctx = canvas ? canvas.getContext('2d') : null;
@@ -231,7 +302,31 @@ function svgEmit() { console.log('stub: svgEmit()'); }
 // Task 6+: hover tooltip / click highlight / wheel zoom / drag pan
 
 // ================= TEMPLATES =================
-// Task 4: 6 个科学模板(segmented #templates)
+// 6 个科学模板(segmented #templates, 按钮 data-i 索引). 每个 apply(): 先 setCfg 定图形
+// 参数(经统一入口保证控件同步), 再设选中集. 模板 5/6 只选有轨道参数的星团
+// (ecc/rperi 为 null 的 41 个无轨道星团被排除).
+const TEMPLATES = [
+  { name: 'R_gc vs [Fe/H]',
+    apply() { setCfg({ type: 'scatter', x: 'rgc', y: 'feh' }); selectAll(); } },
+  { name: 'Metallicity distribution',
+    apply() { setCfg({ type: 'hist', x: 'feh', bins: 30 }); selectAll(); } },
+  { name: 'Distance distribution',
+    apply() { setCfg({ type: 'hist', x: 'dist', bins: 25 }); selectAll(); } },
+  { name: 'M_V vs Mass',
+    apply() { setCfg({ type: 'scatter', x: 'mass', y: 'mv', logX: true }); selectAll(); } },
+  { name: 'Eccentricity distribution',
+    apply() {
+      setCfg({ type: 'hist', x: 'ecc', bins: 25 });
+      setSel(DATA.filter(c => c.ecc != null).map(c => c.id));
+      applySelection(); draw();
+    } },
+  { name: 'Pericentre vs Apocentre',
+    apply() {
+      setCfg({ type: 'scatter', x: 'rperi', y: 'rapo' });
+      setSel(DATA.filter(c => c.rperi != null).map(c => c.id));
+      applySelection(); draw();
+    } },
+];
 
 // ================= EXPORT =================
 function exportPNG() { console.log('stub: exportPNG()'); }
@@ -241,17 +336,22 @@ function exportSVG() { console.log('stub: exportSVG()'); }
 function init() {
   fillParamSelects();
   wireSelection();
+  wireCfgControls();
   renderList('');
+  syncCfgControls();
   draw();
 }
 init();
 
 // ================= TEST SURFACE =================
-// 无头测试钩子(Task 3): 把选择 API 暴露到 window, 供页面上下文断言(brief 测试片段直接调用 selCount()/batchSelect()/presetApply()/selected).
+// 无头测试钩子(Task 3/4): 把选择 API + 配置状态暴露到 window, 供页面上下文断言
+// (brief 测试片段直接调用 selCount()/batchSelect()/presetApply()/selected, 以及
+// cfg/setCfg/TEMPLATES). cfg 按引用暴露, 与闭包状态永远同步.
 Object.assign(window, {
   selected, selCount, applySelection,
   selectAll, clearSel, invertSel, batchSelect,
   PRESETS, presetApply, renderList, matchDisplay,
+  cfg, setCfg, TEMPLATES, syncCfgControls,
 });
 
 })();
