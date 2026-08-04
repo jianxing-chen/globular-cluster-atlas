@@ -27,6 +27,8 @@ function fmtNum(v) {
   if (Number.isInteger(n)) return String(n);
   return String(+n.toPrecision(3));
 }
+// XML/HTML 转义(工具提示 + SVG 文本内容)
+const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const PARAMS = [
   { id:'dist',   label:'Heliocentric distance d',            unit:'kpc',      get:c => getParam(c, 'dist'),   fmt:fmtNum },
   { id:'rgc',    label:'Galactocentric radius R_gc',        unit:'kpc',      get:c => getParam(c, 'rgc'),    fmt:fmtNum },
@@ -243,9 +245,12 @@ function syncCfgControls() {
 }
 
 // 合并配置补丁: Object.assign 到 cfg → 控件同步 → 重绘. 所有绘图控件都经此入口,
-// 保证 cfg 与控件永远一致(Task 5 渲染直接读 cfg).
+// 保证 cfg 与控件永远一致(Task 5 渲染直接读 cfg). 轴定义变更(类型/参数/对数)使
+// 交互视图失效 → view 复位为 null(自动范围), 避免缩放窗口错位到新轴的参数域.
+const AXIS_PATCH = ['type', 'x', 'y', 'logX', 'logY'];
 function setCfg(patch) {
   Object.assign(cfg, patch);
+  if (AXIS_PATCH.some(k => Object.prototype.hasOwnProperty.call(patch, k))) view = null;
   syncCfgControls();
   draw();
 }
@@ -409,6 +414,14 @@ function logScale(v, min, max) {
   return plotRect.x + logT(v, min, max) * plotRect.w;
 }
 
+// 当前帧刻度闭包(draw 的本地 xScale/yScale 提升为模块级, draw/hitTest/svgEmit 共用;
+// axisX/axisY/plotRect 是模块态, draw 后即当前帧, 渲染器中途重置 axisY 也自动生效)
+function xScaleAt(v) { return axisX.log ? logScale(v, axisX.min, axisX.max) : linScale(v, axisX.min, axisX.max); }
+function yScaleAt(v) {
+  const t = axisY.log ? logT(v, axisY.min, axisY.max) : linT(v, axisY.min, axisY.max);
+  return plotRect.y + plotRect.h - t * plotRect.h;
+}
+
 // 刻度文字: 十进制 ≤3 位有效数字; 对数轴 → "10^n"
 function fmtTick(v, isLog) {
   if (isLog) return '10^' + Math.round(Math.log10(v));
@@ -417,20 +430,30 @@ function fmtTick(v, isLog) {
   return String(+v.toPrecision(3));
 }
 
-// 主绘图入口: 清空 → 布局 → 数据范围 → 刻度尺 → 坐标轴 → 类型渲染桩 → 图例 → colorbar → 图注
-function draw() {
-  if (!ctx || !canvas) return;
+// 主绘图入口: 清空 → 布局 → 数据范围(view 优先) → 刻度尺 → 坐标轴 → 类型渲染 → 图例
+// → colorbar → 高亮环 → 图注. target 缺省用主画布 ctx; 导出时传入离屏 3× 上下文.
+// view 非空时直接采用 view 的数据范围(zoom/pan 的精确窗口), 跳过 10 的整幂取整.
+function draw(target) {
+  const g = target || ctx;
+  if (!g || !canvas) return;
   const W = canvas.width, H = canvas.height;
-  ctx.clearRect(0, 0, W, H);
-  ctx.fillStyle = '#fff';
-  ctx.fillRect(0, 0, W, H);
+  g.clearRect(0, 0, W, H);
+  g.fillStyle = '#fff';
+  g.fillRect(0, 0, W, H);
   plotRect = { x: MARGINS.l, y: MARGINS.t, w: W - MARGINS.l - MARGINS.r, h: H - MARGINS.t - MARGINS.b };
 
   const hist = cfg.type === 'hist';
-  const xr = spreadRange(paramRange(cfg.x, cfg.logX), [0, 1]);
-  const yr = hist ? { min: 0, max: 1 } : spreadRange(paramRange(cfg.y, cfg.logY), [0, 1]);
-  if (cfg.logX) { xr.min = Math.pow(10, Math.floor(Math.log10(Math.max(xr.min, 1e-300)))); xr.max = Math.pow(10, Math.ceil(Math.log10(Math.max(xr.max, 1e-300)))); }
-  if (cfg.logY && !hist) { yr.min = Math.pow(10, Math.floor(Math.log10(Math.max(yr.min, 1e-300)))); yr.max = Math.pow(10, Math.ceil(Math.log10(Math.max(yr.max, 1e-300)))); }
+  let xr = spreadRange(paramRange(cfg.x, cfg.logX), [0, 1]);
+  let yr = hist ? { min: 0, max: 1 } : spreadRange(paramRange(cfg.y, cfg.logY), [0, 1]);
+  if (view) {
+    xr = { min: view.xmin, max: view.xmax };
+    yr = { min: view.ymin, max: view.ymax };
+  } else if (cfg.logX) {
+    xr.min = Math.pow(10, Math.floor(Math.log10(Math.max(xr.min, 1e-300)))); xr.max = Math.pow(10, Math.ceil(Math.log10(Math.max(xr.max, 1e-300))));
+    if (cfg.logY && !hist) { yr.min = Math.pow(10, Math.floor(Math.log10(Math.max(yr.min, 1e-300)))); yr.max = Math.pow(10, Math.ceil(Math.log10(Math.max(yr.max, 1e-300)))); }
+  } else if (cfg.logY && !hist) {
+    yr.min = Math.pow(10, Math.floor(Math.log10(Math.max(yr.min, 1e-300)))); yr.max = Math.pow(10, Math.ceil(Math.log10(Math.max(yr.max, 1e-300))));
+  }
   const xSpan = (xr.max - xr.min) || 1, ySpan = (yr.max - yr.min) || 1;
   // 线性轴: 刻度尺端点 = 数据范围 ±5% padding; 对数轴: 无 padding(端点 = 10 的整幂)
   axisX = { min: xr.min, max: xr.max, log: cfg.logX, label: axisLabel(cfg.x) };
@@ -440,19 +463,14 @@ function draw() {
   axisY.lo = axisY.log ? axisY.min : axisY.min - ySpan * 0.05;
   axisY.hi = axisY.log ? axisY.max : axisY.max + ySpan * 0.05;
 
-  const xScale = v => axisX.log ? logScale(v, axisX.min, axisX.max) : linScale(v, axisX.min, axisX.max);
-  const yScale = v => {
-    const t = axisY.log ? logT(v, axisY.min, axisY.max) : linT(v, axisY.min, axisY.max);
-    return plotRect.y + plotRect.h - t * plotRect.h;
-  };
-
-  renderAxes(ctx, xScale, yScale);
-  if (cfg.type === 'scatter') renderScatter(xScale, yScale);
-  else if (cfg.type === 'hist') renderHist(xScale, yScale);
-  else if (cfg.type === 'line') renderLine(xScale, yScale);
-  else if (cfg.type === 'heat') renderHeat(xScale, yScale);
-  renderLegend(ctx);
-  renderColorbar(ctx);
+  renderAxes(g, xScaleAt, yScaleAt);
+  if (cfg.type === 'scatter') renderScatter(g, xScaleAt, yScaleAt);
+  else if (cfg.type === 'hist') renderHist(g, xScaleAt, yScaleAt);
+  else if (cfg.type === 'line') renderLine(g, xScaleAt, yScaleAt);
+  else if (cfg.type === 'heat') renderHeat(g, xScaleAt, yScaleAt);
+  renderLegend(g);
+  renderColorbar(g);
+  renderHighlight(g);
   updateCaption();
 }
 
@@ -601,7 +619,8 @@ function errOf(paramId) {
   }
 }
 
-function renderScatter(xScale, yScale) {
+// ctx 参数 = 目标上下文(draw 传主画布或 3× 离屏导出上下文); 函数体直接用该参数
+function renderScatter(ctx, xScale, yScale) {
   const pts = dataFor(cfg.x).filter(d => {
     const yv = getParam(d.c, cfg.y);
     return yv != null && isFinite(yv);
@@ -629,7 +648,7 @@ function renderScatter(xScale, yScale) {
   ctx.restore();
 }
 
-function renderHist(xScale, yScale) {
+function renderHist(ctx, xScale, yScale) {
   const ds = dataFor(cfg.x);
   const n = ds.length;
   if (!n) return;
@@ -678,7 +697,7 @@ function renderHist(xScale, yScale) {
   ctx.restore();
 }
 
-function renderLine(xScale, yScale) {
+function renderLine(ctx, xScale, yScale) {
   const ds = dataFor(cfg.x);
   if (!ds.length) return;
   const mode = cfg.lineMode;
@@ -735,7 +754,7 @@ function renderLine(xScale, yScale) {
   ctx.restore();
 }
 
-function renderHeat(xScale, yScale) {
+function renderHeat(ctx, xScale, yScale) {
   const ds = dataFor(cfg.x).filter(d => {
     const yv = getParam(d.c, cfg.y);
     return yv != null && isFinite(yv);
@@ -856,11 +875,466 @@ function renderColorbar(ctx) {
   ctx.fillText(fmtTick(r.min, false), cx + cw / 2, cy + ch + 4);
 }
 
+// 悬停/聚焦点高亮环(hover 细红环; focus 更粗的深红环, 优先于 hover). 环画在数据之上,
+// 随每次 draw 重绘; 导出(SVG/PNG)前会临时清空 hoverId/focusId, 不进入成品图.
+function renderHighlight(g) {
+  const id = focusId || hoverId;
+  if (!id) return;
+  const pts = plotPoints();
+  const p = pts && pts.find(q => q.id === id);
+  if (!p) return;
+  const c = DATA.find(cl => cl.id === id);
+  const r = (c && pointRadius(c)) || 4.5;
+  const focus = id === focusId;
+  g.save();
+  g.strokeStyle = focus ? '#a02020' : '#d33';
+  g.lineWidth = focus ? 2.5 : 1.5;
+  g.beginPath();
+  g.arc(xScaleAt(p.x), yScaleAt(p.y), r + (focus ? 5 : 3), 0, Math.PI * 2);
+  g.stroke();
+  g.restore();
+}
+
 // ================= SVG =================
-function svgEmit() { console.log('stub: svgEmit()'); }
+// svgEmit(): 镜像 draw() 的当前帧(axisX/axisY/plotRect 为模块态, draw 后即当前帧) →
+// 完整 SVG 字符串. 坐标 r2 两位小数; 文本 Georgia serif; 交互高亮环不入导出图.
+function svgEmit() {
+  if (!canvas) return '';
+  const W = canvas.width, H = canvas.height;
+  const S = [];
+  const r2 = v => (+v).toFixed(2);
+  const TX = 'font-family="Georgia, serif"';
+  const push = s => S.push(s);
+
+  push('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + W + ' ' + H + '" width="' + W + '" height="' + H + '">');
+  push('<rect x="0" y="0" width="' + W + '" height="' + H + '" fill="#ffffff"/>');
+
+  // ---- 轴: 四边框 + 主/次刻度 + 刻度标签 + 轴标题(与 renderAxes 同几何) ----
+  const { x, y, w, h } = plotRect;
+  push('<rect x="' + r2(x) + '" y="' + r2(y) + '" width="' + r2(w) + '" height="' + r2(h) + '" fill="none" stroke="#000000"/>');
+  const xT = axisX.log ? logTickInfo(axisX.lo, axisX.hi) : niceTicks(axisX.lo, axisX.hi);
+  const yT = axisY.log ? logTickInfo(axisY.lo, axisY.hi) : niceTicks(axisY.lo, axisY.hi);
+  const xMaj = axisX.log ? xT.majors : xT.ticks;
+  const yMaj = axisY.log ? yT.majors : yT.ticks;
+  const MAJ = 5, MIN = 3;
+  const tick = (x1, y1, x2, y2) => push('<line x1="' + r2(x1) + '" y1="' + r2(y1) + '" x2="' + r2(x2) + '" y2="' + r2(y2) + '" stroke="#000000"/>');
+  xMaj.forEach(t => { const px = xScaleAt(t); tick(px, y + h, px, y + h - MAJ); tick(px, y, px, y + MAJ); });
+  yMaj.forEach(t => { const py = yScaleAt(t); tick(x, py, x + MAJ, py); tick(x + w, py, x + w - MAJ, py); });
+  xMaj.forEach(t => push('<text x="' + r2(xScaleAt(t)) + '" y="' + r2(y + h + 7) + '" ' + TX + ' font-size="12" text-anchor="middle" dominant-baseline="hanging">' + esc(fmtTick(t, axisX.log)) + '</text>'));
+  yMaj.forEach(t => push('<text x="' + r2(x - 8) + '" y="' + r2(yScaleAt(t)) + '" ' + TX + ' font-size="12" text-anchor="end" dominant-baseline="central">' + esc(fmtTick(t, axisY.log)) + '</text>'));
+  const linFracs = step => {
+    const m = step / Math.pow(10, Math.floor(Math.log10(step) + 1e-9));
+    if (Math.abs(m - 1) < 1e-9) return [0.2, 0.4, 0.6, 0.8];
+    if (Math.abs(m - 2) < 1e-9) return [0.5];
+    return [0.2, 0.4, 0.6, 0.8];
+  };
+  if (axisX.log) xT.minors.forEach(v => { const px = xScaleAt(v); tick(px, y + h, px, y + h - MIN); tick(px, y, px, y + MIN); });
+  else xT.ticks.forEach(t => linFracs(xT.step).forEach(f => {
+    const v = t + f * xT.step;
+    if (v <= axisX.hi + 1e-9 && v >= axisX.lo - 1e-9) { const px = xScaleAt(v); tick(px, y + h, px, y + h - MIN); tick(px, y, px, y + MIN); }
+  }));
+  if (axisY.log) yT.minors.forEach(v => { const py = yScaleAt(v); tick(x, py, x + MIN, py); tick(x + w, py, x + w - MIN, py); });
+  else yT.ticks.forEach(t => linFracs(yT.step).forEach(f => {
+    const v = t + f * yT.step;
+    if (v <= axisY.hi + 1e-9 && v >= axisY.lo - 1e-9) { const py = yScaleAt(v); tick(x, py, x + MIN, py); tick(x + w, py, x + w - MIN, py); }
+  }));
+  push('<text x="' + r2(x + w / 2) + '" y="' + r2(y + h + 30) + '" ' + TX + ' font-style="italic" font-size="14" text-anchor="middle" dominant-baseline="hanging">' + esc(axisX.label) + '</text>');
+  push('<text transform="translate(' + r2(x - 44) + ',' + r2(y + h / 2) + ') rotate(-90)" ' + TX + ' font-style="italic" font-size="14" text-anchor="middle" dominant-baseline="hanging">' + esc(axisY.label) + '</text>');
+
+  // ---- 数据(与各 render* 同几何) ----
+  if (cfg.type === 'scatter') {
+    const pts = dataFor(cfg.x).filter(d => {
+      const yv = getParam(d.c, cfg.y);
+      return yv != null && isFinite(yv);
+    });
+    const e = cfg.errBars ? errOf(cfg.y) : null;
+    pts.forEach(d => {
+      const c = d.c, yv = getParam(d.c, cfg.y);
+      const X = r2(xScaleAt(d.v)), Y = r2(yScaleAt(yv));
+      if (e) {
+        const err = e.abs != null ? e.abs : e.f * Math.abs(yv);
+        push('<line x1="' + X + '" y1="' + r2(yScaleAt(yv - err)) + '" x2="' + X + '" y2="' + r2(yScaleAt(yv + err)) + '" stroke="#999999"/>');
+      }
+      const g = groupOf(c), col = pointColor(c), r = r2(pointRadius(c));
+      if (g === 1) push('<circle cx="' + X + '" cy="' + Y + '" r="' + r + '" fill="none" stroke="' + col + '" stroke-width="1.2"/>');
+      else push('<circle cx="' + X + '" cy="' + Y + '" r="' + r + '" fill="' + col + '"/>');
+    });
+  } else if (cfg.type === 'hist') {
+    const ds = dataFor(cfg.x);
+    if (ds.length) {
+      let lo = Infinity, hi = -Infinity;
+      ds.forEach(d => { if (d.v < lo) lo = d.v; if (d.v > hi) hi = d.v; });
+      const bins = Math.max(1, cfg.bins);
+      const binW = (hi - lo) / bins || 1;
+      const counts = Array.from({ length: bins }, () => [0, 0]);
+      ds.forEach(d => {
+        let b = Math.floor((d.v - lo) / binW);
+        if (b >= bins) b = bins - 1;
+        if (b < 0) b = 0;
+        const g = groupOf(d.c);
+        counts[b][g == null ? 0 : g]++;
+      });
+      const n = ds.length;
+      const maxCount = Math.max(1, ...counts.flat());
+      const peakDens = cfg.density
+        ? Math.max(...counts.map(b => (b[0] + b[1]) / (n * binW)))
+        : maxCount;
+      const bwFull = plotRect.w / bins, bwDraw = bwFull * 0.9, base = plotRect.y + plotRect.h;
+      const yOf = cnt => yScaleAt(cfg.density ? cnt / (n * binW) : cnt);
+      for (let b = 0; b < bins; b++) {
+        const x0 = xScaleAt(lo + b * binW);
+        const c0 = counts[b][0], c1 = counts[b][1];
+        if (c0 > 0) push('<rect x="' + r2(x0 + bwFull * 0.05) + '" y="' + r2(yOf(c0)) + '" width="' + r2(bwDraw) + '" height="' + r2(base - yOf(c0)) + '" fill="#000000"/>');
+        if (c1 > 0) push('<rect x="' + r2(x0 + bwFull * 0.05) + '" y="' + r2(yOf(c1)) + '" width="' + r2(bwDraw) + '" height="' + r2(base - yOf(c1)) + '" fill="none" stroke="#bbbbbb"/>');
+      }
+    }
+  } else if (cfg.type === 'line') {
+    const ds = dataFor(cfg.x);
+    if (ds.length) {
+      const poly = pts => push('<polyline points="' + pts.map(p => r2(p[0]) + ',' + r2(p[1])).join(' ') + '" fill="none" stroke="#000000" stroke-width="1.5"/>');
+      if (cfg.lineMode === 'cdf') {
+        const vals = ds.map(d => d.v).sort((a, b) => a - b);
+        const P = [[vals[0], 0]];
+        for (let i = 0; i < vals.length; i++) {
+          P.push([vals[i], i / vals.length]);
+          if (i < vals.length - 1) P.push([vals[i + 1], i / vals.length]);
+        }
+        P.push([vals[vals.length - 1], 1]);
+        poly(P.map(p => [xScaleAt(p[0]), yScaleAt(p[1])]));
+      } else if (cfg.lineMode === 'sorted') {
+        const pts = ds.map(d => ({ x: d.v, y: getParam(d.c, cfg.y) }))
+                      .filter(p => p.y != null && isFinite(p.y))
+                      .sort((a, b) => a.x - b.x);
+        poly(pts.map(p => [xScaleAt(p.x), yScaleAt(p.y)]));
+      } else {
+        const pts = ds.map(d => ({ x: d.v, y: getParam(d.c, cfg.y) }))
+                      .filter(p => p.y != null && isFinite(p.y));
+        if (pts.length) {
+          const lo = Math.min(...pts.map(p => p.x)), hi = Math.max(...pts.map(p => p.x));
+          const bins = Math.max(1, cfg.bins), bw = (hi - lo) / bins || 1;
+          const bwPx = plotRect.w / bins;
+          const means = [];
+          for (let b = 0; b < bins; b++) {
+            const bv = pts.filter(p => p.x >= lo + b * bw && p.x < lo + (b + 1) * bw);
+            if (!bv.length) continue;
+            const mean = bv.reduce((s, p) => s + p.y, 0) / bv.length;
+            const sd = Math.sqrt(bv.reduce((s, p) => s + (p.y - mean) ** 2, 0) / bv.length);
+            const X = xScaleAt(lo + (b + 0.5) * bw);
+            push('<rect x="' + r2(X - bwPx / 2) + '" y="' + r2(yScaleAt(mean + sd)) + '" width="' + r2(bwPx) + '" height="' + r2(yScaleAt(mean - sd) - yScaleAt(mean + sd)) + '" fill="#000000" fill-opacity="0.15"/>');
+            means.push([X, yScaleAt(mean)]);
+          }
+          if (means.length) poly(means);
+        }
+      }
+    }
+  } else if (cfg.type === 'heat') {
+    const ds = dataFor(cfg.x).filter(d => {
+      const yv = getParam(d.c, cfg.y);
+      return yv != null && isFinite(yv);
+    });
+    if (ds.length) {
+      const xs = ds.map(d => d.v), ys = ds.map(d => getParam(d.c, cfg.y));
+      const xlo = Math.min(...xs), xhi = Math.max(...xs);
+      const ylo = Math.min(...ys), yhi = Math.max(...ys);
+      const nb = Math.max(2, cfg.heatBins);
+      const bw = (xhi - xlo) / nb || 1, bh = (yhi - ylo) / nb || 1;
+      const counts = Array.from({ length: nb }, () => Array(nb).fill(0));
+      ds.forEach(d => {
+        let bx = Math.floor((d.v - xlo) / bw); if (bx >= nb) bx = nb - 1; if (bx < 0) bx = 0;
+        const yv = getParam(d.c, cfg.y);
+        let by = Math.floor((yv - ylo) / bh); if (by >= nb) by = nb - 1; if (by < 0) by = 0;
+        counts[bx][by]++;
+      });
+      const maxC = Math.max(1, ...counts.flat());
+      const cw = plotRect.w / nb, ch = plotRect.h / nb;
+      for (let i = 0; i < nb; i++) for (let j = 0; j < nb; j++) {
+        const c = counts[i][j];
+        if (!c) continue;
+        const t = cfg.heatLog ? Math.log10(c) / Math.log10(maxC) : c / maxC;
+        const x0 = xScaleAt(xlo + i * bw);
+        const y0 = yScaleAt(ylo + (j + 1) * bh), y1 = yScaleAt(ylo + j * bh);
+        push('<rect x="' + r2(x0) + '" y="' + r2(y0) + '" width="' + r2(cw + 0.5) + '" height="' + r2(y1 - y0) + '" fill="' + (cfg.colorMode ? viridis(t) : '#000000') + '" fill-opacity="' + (cfg.colorMode ? '0.85' : (0.06 + 0.94 * t).toFixed(3)) + '"/>');
+      }
+    }
+  }
+
+  // ---- 图例(overlay/colorMode 时, 同 renderLegend 几何) ----
+  if (cfg.overlay !== 'none' || cfg.colorMode) {
+    const rows = [];
+    if (cfg.overlay !== 'none') {
+      const NAMES = { disc: 'Disc (Rgc<8)', halo: 'Halo (Rgc≥8)', rich: 'Metal-rich', poor: 'Metal-poor' };
+      rows.push({ label: NAMES[cfg.overlay] || cfg.overlay, swatch: SERIES[1] });
+    }
+    if (cfg.colorMode) rows.push({ label: 'Color: ' + axisLabel(cfg.colorParam), swatch: 'gradient' });
+    const pad = 8, rh = 16, sw = 12;
+    let tw = 0;
+    rows.forEach(r => { tw = Math.max(tw, r.label.length * 6.2); });   // 12px Georgia 近似字宽
+    const bw = tw + sw + pad * 3, bh = rows.length * rh + pad;
+    const off = cfg.colorMode ? 40 : 8;
+    const bx = x + w - bw - off, by = y + 8;
+    push('<rect x="' + r2(bx) + '" y="' + r2(by) + '" width="' + r2(bw) + '" height="' + r2(bh) + '" fill="#ffffff" stroke="#000000"/>');
+    rows.forEach((r, i) => {
+      const ry = by + pad / 2 + i * rh;
+      if (r.swatch === 'gradient') {
+        for (let k = 0; k < sw; k++) push('<rect x="' + r2(bx + pad + k) + '" y="' + r2(ry + 2) + '" width="1" height="10" fill="' + viridis(k / Math.max(1, sw - 1)) + '"/>');
+      } else {
+        push('<rect x="' + r2(bx + pad) + '" y="' + r2(ry + 2) + '" width="' + sw + '" height="10" fill="' + r.swatch + '"/>');
+      }
+      push('<text x="' + r2(bx + pad + sw + 6) + '" y="' + r2(ry + 7) + '" ' + TX + ' font-size="12" text-anchor="start" dominant-baseline="central">' + esc(r.label) + '</text>');
+    });
+  }
+
+  // ---- colorbar(colorMode 时, 同 renderColorbar 几何) ----
+  if (cfg.colorMode) {
+    const r = paramRange(cfg.colorParam);
+    if (r) {
+      const cw = 12, gap = 8, inset = 6;
+      const cx = x + w - cw - gap, cy = y + inset, chh = h - inset * 2;
+      for (let i = 0; i < chh; i++) push('<rect x="' + r2(cx) + '" y="' + r2(cy + i) + '" width="' + cw + '" height="1" fill="' + viridis(1 - i / Math.max(1, chh - 1)) + '"/>');
+      push('<rect x="' + r2(cx) + '" y="' + r2(cy) + '" width="' + cw + '" height="' + r2(chh) + '" fill="none" stroke="#000000"/>');
+      push('<text x="' + r2(cx + cw / 2) + '" y="' + r2(cy - 3) + '" ' + TX + ' font-size="12" text-anchor="middle">' + esc(fmtTick(r.max, false)) + '</text>');
+      push('<text x="' + r2(cx + cw / 2) + '" y="' + r2(cy + chh + 4) + '" ' + TX + ' font-size="12" text-anchor="middle" dominant-baseline="hanging">' + esc(fmtTick(r.min, false)) + '</text>');
+    }
+  }
+
+  push('</svg>');
+  return S.join('\n');
+}
 
 // ================= INTERACT =================
-// Task 6+: hover tooltip / click highlight / wheel zoom / drag pan
+// Task 7: hover tooltip / click-to-focus / wheel zoom / drag pan / dblclick reset.
+// view = 当前数据窗口(数据坐标); null = 自动范围(draw 内 paramRange 计算).
+let view = null;
+let hoverId = null;          // 悬停高亮(mousemove)
+let focusId = null;          // 点击聚焦(focus 环优先于 hover 环)
+
+// 像素 → 数据值(逆用 linT/logT): 线性走 lo/hi 刻度端点(含 5% pad), 对数走 min/max
+function screenToData(x, y) {
+  const tx = (x - plotRect.x) / plotRect.w;
+  const ty = (plotRect.y + plotRect.h - y) / plotRect.h;
+  const unLog = (t, lo, hi) => {
+    const L = Math.log10(Math.max(lo, 1e-300)), H = Math.log10(Math.max(hi, 1e-300));
+    return Math.pow(10, L + t * (H - L));
+  };
+  return {
+    x: axisX.log ? unLog(tx, axisX.lo, axisX.hi) : axisX.lo + tx * (axisX.hi - axisX.lo),
+    y: axisY.log ? unLog(ty, axisY.lo, axisY.hi) : axisY.lo + ty * (axisY.hi - axisY.lo),
+  };
+}
+
+// 当前图型的数据点列表(数据坐标 + cluster id): scatter → 全部点; line → cdf 用累计
+// 分数(与渲染阶梯一致), 其余模式用 X/Y 参数值; hist/heat 无单点语义 → []
+function fracLe(sorted, v) {
+  let lo = 0, hi = sorted.length;
+  while (lo < hi) { const m = (lo + hi) >> 1; if (sorted[m] <= v) lo = m + 1; else hi = m; }
+  return lo;
+}
+function plotPoints() {
+  if (cfg.type === 'scatter') {
+    return dataFor(cfg.x)
+      .filter(d => { const yv = getParam(d.c, cfg.y); return yv != null && isFinite(yv); })
+      .map(d => ({ id: d.c.id, x: d.v, y: getParam(d.c, cfg.y) }));
+  }
+  if (cfg.type === 'line') {
+    const ds = dataFor(cfg.x);
+    if (!ds.length) return [];
+    if (cfg.lineMode === 'cdf') {
+      const vals = ds.map(d => d.v).sort((a, b) => a - b);
+      const n = vals.length;
+      return ds.map(d => ({ id: d.c.id, x: d.v, y: fracLe(vals, d.v) / n }));
+    }
+    return ds
+      .filter(d => { const yv = getParam(d.c, cfg.y); return yv != null && isFinite(yv); })
+      .map(d => ({ id: d.c.id, x: d.v, y: getParam(d.c, cfg.y) }));
+  }
+  return [];
+}
+
+// 命中测试: 距光标 ≤12 px 的最近点 → cluster id; scatter/line 之外返回 null
+function hitTest(x, y) {
+  if (cfg.type !== 'scatter' && cfg.type !== 'line') return null;
+  const pts = plotPoints();
+  if (!pts.length) return null;
+  let best = null, bestD = 12 * 12;
+  for (const p of pts) {
+    const dx = xScaleAt(p.x) - x, dy = yScaleAt(p.y) - y;
+    const d = dx * dx + dy * dy;
+    if (d < bestD) { bestD = d; best = p.id; }
+  }
+  return best;
+}
+
+// 悬停高亮(重绘以画/清高亮环; id 不变则跳过重绘)
+function setHover(id) {
+  if (hoverId === id) return;
+  hoverId = id || null;
+  draw();
+}
+
+// 点击聚焦: 高亮 + 加入选中集(勾选 checkbox) + 列表行滚动到可视区
+function setFocus(id) {
+  focusId = id || null;
+  if (focusId) {
+    selected.add(focusId);
+    applySelection();
+    const list = $('cluster-list');
+    const cb = list && list.querySelector('input[data-id="' + focusId + '"]');
+    const row = cb && cb.closest('.row');
+    if (row && row.scrollIntoView) row.scrollIntoView({ block: 'nearest' });
+  }
+  draw();
+}
+
+// ---- tooltip(#tooltip, 绝对定位于 #canvas-wrap 内, 随光标移动) ----
+let tip = null;
+function ensureTip() {
+  if (tip) return tip;
+  tip = document.createElement('div');
+  tip.id = 'tooltip';
+  tip.style.cssText = 'position:absolute;display:none;pointer-events:none;z-index:50;max-width:360px;' +
+    'background:rgba(13,20,38,.96);color:#dfe7ff;border:1px solid rgba(120,160,255,.35);' +
+    'border-radius:6px;padding:6px 9px;font:12px Georgia,"Times New Roman",serif;' +
+    'line-height:1.5;box-shadow:0 4px 14px rgba(0,0,0,.5)';
+  const wrap = $('canvas-wrap');
+  if (wrap) wrap.appendChild(tip);
+  return tip;
+}
+function hideTooltip() { if (tip) tip.style.display = 'none'; }
+function showTooltip(c, dx, dy, clientX, clientY) {
+  const t = ensureTip();
+  const pX = PARAM_BY_ID[cfg.x], pY = PARAM_BY_ID[cfg.y];
+  const val = (p, v) => (p ? ' · ' + p.label + ' = ' + fmtNum(v) + (p.unit ? ' ' + p.unit : '') : '');
+  t.innerHTML = '<b>' + esc(dispOf(c)) + '</b>' +
+    (cfg.type === 'hist' ? val(pX, dx) : val(pX, dx) + val(pY, dy));
+  const wrap = $('canvas-wrap');
+  const wr = wrap ? wrap.getBoundingClientRect() : { left: 0, top: 0, width: 1024, height: 768 };
+  t.style.display = 'block';
+  const tw = t.offsetWidth, th = t.offsetHeight;
+  let left = clientX - wr.left + 14, top = clientY - wr.top + 14;
+  if (left + tw > wr.width - 4) left = clientX - wr.left - tw - 14;
+  if (top + th > wr.height - 4) top = clientY - wr.top - th - 14;
+  t.style.left = Math.max(2, left) + 'px';
+  t.style.top = Math.max(2, top) + 'px';
+}
+
+// ---- 视图操作: 缩放(以光标为中心 ×1.2) / 平移(按数据增量) / 复位 ----
+// y 轴是否跟随视图: hist 与 line-cdf 的 y 由渲染器自动接管(计数/累计分数), 不随视图
+function yViewDriven() {
+  if (cfg.type === 'hist') return false;
+  if (cfg.type === 'line' && cfg.lineMode === 'cdf') return false;
+  return true;
+}
+// 一维区间按像素增量平移: 线性平移数值, 对数在 log10 空间平移(再还原)
+function shiftRange(min, max, log, dPx, pxSpan) {
+  const lo = log ? Math.log10(Math.max(min, 1e-300)) : min;
+  const hi = log ? Math.log10(Math.max(max, 1e-300)) : max;
+  const span = (hi - lo) || 1;
+  const d = dPx * span / (pxSpan || 1);
+  if (log) return [Math.pow(10, lo - d), Math.pow(10, hi - d)];
+  return [min - d, max - d];
+}
+function panFrom(base, dx, dy) {
+  const [xmin, xmax] = shiftRange(base.xmin, base.xmax, cfg.logX, dx, plotRect.w);
+  const v = { xmin, xmax, ymin: base.ymin, ymax: base.ymax };
+  if (yViewDriven()) {
+    const [ymin, ymax] = shiftRange(base.ymin, base.ymax, cfg.logY, dy, plotRect.h);
+    v.ymin = ymin; v.ymax = ymax;
+  }
+  return v;
+}
+// 一维区间以数据点 c 为中心缩放 factor(>1 放大); 对数轴在 log10 空间缩放
+function zoom1d(min, max, c, log, factor) {
+  const lo = log ? Math.log10(Math.max(min, 1e-300)) : min;
+  const hi = log ? Math.log10(Math.max(max, 1e-300)) : max;
+  const cT = log ? Math.log10(Math.max(c, 1e-300)) : c;
+  const span = (hi - lo) || 1;
+  const frac = (cT - lo) / span;
+  const nspan = span / factor;
+  let n0 = cT - frac * nspan, n1 = n0 + nspan;
+  if (log) { n0 = Math.pow(10, n0); n1 = Math.pow(10, n1); }
+  return [n0, n1];
+}
+function zoomAt(p, factor) {
+  const base = view || { xmin: axisX.min, xmax: axisX.max, ymin: axisY.min, ymax: axisY.max };
+  const d = screenToData(p.x, p.y);
+  const [xmin, xmax] = zoom1d(base.xmin, base.xmax, d.x, cfg.logX, factor);
+  const v = { xmin, xmax, ymin: base.ymin, ymax: base.ymax };
+  if (yViewDriven()) {
+    const [ymin, ymax] = zoom1d(base.ymin, base.ymax, d.y, cfg.logY, factor);
+    v.ymin = ymin; v.ymax = ymax;
+  }
+  view = v;
+  draw();
+}
+
+// ---- canvas 监听 ----
+// 画布 CSS 显示尺寸可能 ≠ 1024×768 buffer(自适应缩放), 事件坐标按 rect 比例换算
+function canvasPos(e) {
+  const r = canvas.getBoundingClientRect();
+  return { x: (e.clientX - r.left) * canvas.width / r.width, y: (e.clientY - r.top) * canvas.height / r.height };
+}
+let drag = null;             // {sx, sy, base, moved}
+let suppressClick = false;   // 拖拽平移后抑制随后的 click
+
+function onMouseMove(e) {
+  const p = canvasPos(e);
+  if (drag) {
+    if (drag.moved) { view = panFrom(drag.base, p.x - drag.sx, p.y - drag.sy); draw(); }
+    else if (Math.abs(p.x - drag.sx) + Math.abs(p.y - drag.sy) > 3) drag.moved = true;
+    return;
+  }
+  const id = hitTest(p.x, p.y);
+  setHover(id);
+  if (id) {
+    const q = plotPoints().find(pp => pp.id === id);
+    const c = DATA.find(cl => cl.id === id);
+    if (q && c) showTooltip(c, q.x, q.y, e.clientX, e.clientY);
+  } else hideTooltip();
+}
+function onMouseDown(e) {
+  if (e.button !== 0) return;
+  const p = canvasPos(e);
+  drag = {
+    sx: p.x, sy: p.y, moved: false,
+    base: view || { xmin: axisX.min, xmax: axisX.max, ymin: axisY.min, ymax: axisY.max },
+  };
+}
+function onMouseUp() {
+  if (drag) { suppressClick = drag.moved; drag = null; }
+}
+function onClick(e) {
+  if (suppressClick) { suppressClick = false; return; }
+  const p = canvasPos(e);
+  setFocus(hitTest(p.x, p.y));
+}
+function onWheel(e) {
+  e.preventDefault();
+  // 滚轮向上(deltaY<0) = 放大 ×1.2; 向下 = 缩小 ÷1.2
+  zoomAt(canvasPos(e), e.deltaY < 0 ? 1.2 : 1 / 1.2);
+}
+function onDblClick() {
+  view = null;
+  draw();
+}
+function onMouseLeave() {
+  setHover(null);
+  hideTooltip();
+}
+
+// 接线: 导出按钮 + 画布交互事件
+function wireInteract() {
+  if (!canvas) return;
+  const btn = (id, fn) => { const el = $(id); if (el) el.addEventListener('click', fn); };
+  btn('btn-png', exportPNG);
+  btn('btn-svg', exportSVG);
+  canvas.addEventListener('mousemove', onMouseMove);
+  canvas.addEventListener('mousedown', onMouseDown);
+  canvas.addEventListener('mouseup', onMouseUp);
+  canvas.addEventListener('click', onClick);
+  canvas.addEventListener('wheel', onWheel, { passive: false });
+  canvas.addEventListener('dblclick', onDblClick);
+  canvas.addEventListener('mouseleave', onMouseLeave);
+}
 
 // ================= TEMPLATES =================
 // 6 个科学模板(segmented #templates, 按钮 data-i 索引). 每个 apply(): 先 setCfg 定图形
@@ -890,14 +1364,57 @@ const TEMPLATES = [
 ];
 
 // ================= EXPORT =================
-function exportPNG() { console.log('stub: exportPNG()'); }
-function exportSVG() { console.log('stub: exportSVG()'); }
+// 文件名时间戳: plot_<type>_<YYYYMMDD>.<ext>(本地日期)
+function dateStamp() {
+  const d = new Date();
+  const p = n => String(n).padStart(2, '0');
+  return '' + d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate());
+}
+// 触发 <a download> 下载(测试钩子可替换 anchor.click 捕获 href/download)
+function downloadDataURL(url, name) {
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
+// 离屏 3× 画布重绘(≈300 dpi) → PNG dataURL → 下载; 返回 dataURL 供测试断言.
+// 导出前临时清空 hover/focus 高亮, 成品图为干净帧.
+function exportPNG() {
+  if (!canvas) return null;
+  const SCALE = 3;
+  const off = document.createElement('canvas');
+  off.width = canvas.width * SCALE;
+  off.height = canvas.height * SCALE;
+  const g = off.getContext('2d');
+  g.scale(SCALE, SCALE);
+  const sh = hoverId, sf = focusId;
+  hoverId = focusId = null;
+  try { draw(g); } finally { hoverId = sh; focusId = sf; }
+  const url = off.toDataURL('image/png');
+  downloadDataURL(url, 'plot_' + cfg.type + '_' + dateStamp() + '.png');
+  return url;
+}
+
+// svgEmit() → Blob 下载; 返回 SVG 字符串供测试断言
+function exportSVG() {
+  const svg = svgEmit();
+  if (!svg) return null;
+  const blob = new Blob([svg], { type: 'image/svg+xml' });
+  const url = URL.createObjectURL(blob);
+  downloadDataURL(url, 'plot_' + cfg.type + '_' + dateStamp() + '.svg');
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+  return svg;
+}
 
 // ================= INIT =================
 function init() {
   fillParamSelects();
   wireSelection();
   wireCfgControls();
+  wireInteract();
   renderList('');
   syncCfgControls();
   draw();
@@ -916,11 +1433,16 @@ Object.assign(window, {
   cfg, setCfg, TEMPLATES, syncCfgControls,
   niceTicks, fmtTick, linScale, logScale, viridis,
   draw, renderAxes,
+  dataFor, plotPoints,
+  screenToData, hitTest, setHover, setFocus,
+  svgEmit, exportPNG, exportSVG,
   getPlotState: () => ({
     plotRect: { ...plotRect },
     axisX: { ...axisX },
     axisY: { ...axisY },
   }),
 });
+// view 是 let 绑定(zoom/pan 整体替换对象), 用 getter 暴露当前值供测试读取
+Object.defineProperty(window, 'view', { configurable: true, get: () => view });
 
 })();
