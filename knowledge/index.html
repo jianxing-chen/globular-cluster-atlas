@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Globular Cluster Atlas — Knowledge Base</title>
+<meta name="description" content="A glossary of globular-cluster parameters and notable clusters of the Milky Way: nearest, brightest, most massive, most metal-poor, and more — with literature references.">
+<style>
+:root{
+  --bg:#05070f; --bg2:#0a0f1f; --panel:#0d1426; --panel2:#101a33;
+  --line:rgba(120,160,255,.14); --line2:rgba(120,160,255,.28);
+  --txt:#dfe7ff; --dim:#8f9cc4; --faint:#5a6690;
+  --acc:#7fd4ff; --acc2:#4f8dff; --warm:#ffb454; --teal:#37e0d8;
+  --mono:"SF Mono","JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:
+    radial-gradient(ellipse 90% 55% at 50% -8%, rgba(79,141,255,.12), transparent 60%),
+    var(--bg);
+  color:var(--txt);font-family:-apple-system,"Inter","Segoe UI",Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;line-height:1.65}
+.wrap{max-width:1060px;margin:0 auto;padding:0 26px}
+a{color:var(--acc);text-decoration:none}
+a:hover{text-decoration:underline}
+
+nav{position:sticky;top:0;z-index:50;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  background:rgba(5,7,15,.72);border-bottom:1px solid var(--line)}
+nav .wrap{display:flex;align-items:center;justify-content:space-between;height:56px}
+nav .logo{font-family:var(--mono);font-size:12px;letter-spacing:.22em;color:var(--acc);text-transform:uppercase}
+nav .links{display:flex;gap:20px;font-family:var(--mono);font-size:11px;letter-spacing:.06em}
+nav .links a{color:var(--dim)}
+nav .links a:hover{color:var(--acc);text-decoration:none}
+nav .lang{font-family:var(--mono);font-size:11px;padding:6px 14px;border-radius:8px;
+  background:rgba(120,160,255,.1);color:var(--acc);border:1px solid var(--line)}
+@media(max-width:760px){nav .links{display:none}}
+
+header{padding:64px 0 34px;text-align:center}
+.eyebrow{font-family:var(--mono);font-size:10.5px;letter-spacing:.4em;color:var(--acc);text-transform:uppercase}
+h1{font-size:clamp(30px,5vw,46px);font-weight:800;margin:14px 0 8px;
+  background:linear-gradient(105deg,#fff 25%,var(--acc) 70%,var(--acc2));
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+header p{font-family:var(--mono);font-size:13px;color:var(--dim);max-width:660px;margin:0 auto}
+
+section{padding:44px 0;border-top:1px solid var(--line)}
+.sec-tag{font-family:var(--mono);font-size:10.5px;letter-spacing:.3em;color:var(--acc);text-transform:uppercase;margin-bottom:10px}
+h2{font-size:clamp(21px,3vw,28px);font-weight:800;margin-bottom:20px}
+p.lead{color:var(--dim);font-size:15px;max-width:820px;margin-bottom:22px}
+h3{font-size:16px;font-weight:700;margin:26px 0 12px;color:var(--txt)}
+h3 .en{font-family:var(--mono);font-size:11px;font-weight:400;color:var(--faint);margin-left:8px}
+
+.tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:14px;background:var(--panel);margin-bottom:10px}
+table{width:100%;border-collapse:collapse;font-size:13px;min-width:620px}
+th{background:var(--panel2);color:var(--acc);text-align:left;padding:10px 14px;font-family:var(--mono);
+  font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;border-bottom:1px solid var(--line)}
+td{padding:9px 14px;border-bottom:1px solid rgba(120,160,255,.07);vertical-align:top}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(120,160,255,.05)}
+td.sym{font-family:var(--mono);color:var(--acc);white-space:nowrap}
+td .src{font-family:var(--mono);font-size:10px;color:var(--faint)}
+td .u{color:var(--faint);font-family:var(--mono);font-size:11px}
+
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 20px;
+  transition:border-color .2s,transform .2s}
+.card:hover{border-color:var(--acc2);transform:translateY(-2px)}
+.card .cat{font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;color:var(--warm);text-transform:uppercase}
+.card .t{font-size:16px;font-weight:800;margin:5px 0 6px}
+.card .t .alias{font-family:var(--mono);font-size:11.5px;color:var(--faint);font-weight:400;margin-left:6px}
+.card .v{font-family:var(--mono);font-size:13.5px;color:var(--acc);margin-bottom:6px}
+.card .d{font-size:12.5px;color:var(--dim);line-height:1.55}
+.card .ref{font-family:var(--mono);font-size:10px;color:var(--faint);margin-top:9px;padding-top:8px;border-top:1px solid var(--line)}
+
+.note{font-size:12px;color:var(--faint);font-family:var(--mono);background:rgba(120,160,255,.05);
+  border:1px solid var(--line);border-radius:10px;padding:12px 16px;margin:14px 0;line-height:1.7}
+
+ol.refs{padding-left:22px;color:var(--dim);font-size:13px}
+ol.refs li{margin-bottom:8px}
+ol.refs .bib{font-family:var(--mono);font-size:11px;color:var(--faint);display:block;margin-top:2px}
+
+footer{border-top:1px solid var(--line);padding:28px 0 40px;text-align:center}
+footer .lic{font-family:var(--mono);font-size:11px;color:var(--faint)}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <div class="logo">GC Atlas · Knowledge</div>
+    <div class="links">
+      <a href="#params">Parameters</a>
+      <a href="#notable">Notable clusters</a>
+      <a href="#limits">Data &amp; limits</a>
+      <a href="#refs">References</a>
+    </div>
+    <a class="lang" href="index.zh.html">中文版</a>
+  </div>
+</nav>
+
+<header class="wrap">
+  <div class="eyebrow">Milky Way Globular Cluster Atlas</div>
+  <h1>Globular Cluster Knowledge Base</h1>
+  <p>A guide to the physical parameters in our catalog and the most notable globular
+  clusters of the Milky Way — with values cross-checked against the literature.</p>
+</header>
+
+<!-- ================= PARAMETERS ================= -->
+<section class="wrap" id="params">
+  <div class="sec-tag">Parameter glossary</div>
+  <h2>What does each parameter mean?</h2>
+  <p class="lead">The catalog merges four sources (Harris 1996/2010; Vasiliev &amp; Baumgardt 2021;
+    Baumgardt &amp; Hilker 2018; Bica et al. 2019) plus our own orbit integration.
+    Symbol definitions and units below; the source column gives the primary reference for each field.</p>
+
+  <h3>Position &amp; distance</h3>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Symbol</th><th>Meaning</th><th>Unit</th><th>Source</th></tr></thead>
+    <tbody>
+      <tr><td class="sym">l, b</td><td>Galactic longitude and latitude (J2000) — the cluster's direction on the sky in Galactic coordinates.</td><td class="u">deg</td><td class="src">Harris 1996/2010</td></tr>
+      <tr><td class="sym">RA, Dec</td><td>Equatorial right ascension and declination (J2000) from Gaia EDR3 astrometry.</td><td class="u">deg</td><td class="src">VB21</td></tr>
+      <tr><td class="sym">d</td><td>Heliocentric distance — how far the cluster is from the Sun.</td><td class="u">kpc</td><td class="src">BH18 / VB21 / Harris</td></tr>
+      <tr><td class="sym">R<sub>gc</sub></td><td>Galactocentric radius — distance from the Galactic centre (R☉ = 8.275 kpc adopted).</td><td class="u">kpc</td><td class="src">derived</td></tr>
+      <tr><td class="sym">X, Y, Z</td><td>Galactocentric Cartesian coordinates (right-handed; +x toward the Sun from the centre).</td><td class="u">kpc</td><td class="src">derived</td></tr>
+    </tbody></table></div>
+
+  <h3>Photometry &amp; colours</h3>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Symbol</th><th>Meaning</th><th>Unit</th><th>Source</th></tr></thead>
+    <tbody>
+      <tr><td class="sym">V</td><td>Integrated apparent V-band magnitude — total brightness as seen from Earth.</td><td class="u">mag</td><td class="src">Harris 1996/2010</td></tr>
+      <tr><td class="sym">M<sub>V</sub></td><td>Integrated absolute V-band magnitude — brightness corrected for distance (distance modulus (m−M)<sub>V</sub> and extinction applied).</td><td class="u">mag</td><td class="src">Harris 1996/2010</td></tr>
+      <tr><td class="sym">(B−V), (U−B), (V−R), (V−I)</td><td>Integrated colours — proxies for the cluster's stellar population and reddening.</td><td class="u">mag</td><td class="src">Harris 1996/2010</td></tr>
+      <tr><td class="sym">E(B−V)</td><td>Reddening — interstellar extinction in the direction of the cluster, measured from colour excess.</td><td class="u">mag</td><td class="src">Harris 1996/2010</td></tr>
+    </tbody></table></div>
+
+  <h3>Chemistry</h3>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Symbol</th><th>Meaning</th><th>Unit</th><th>Source</th></tr></thead>
+    <tbody>
+      <tr><td class="sym">[Fe/H]</td><td>Iron abundance relative to the Sun, log scale. Metal-rich clusters (≈ −0.3 to −1) live in the bulge/disc; metal-poor halo clusters reach ≈ −2.5. The distribution is famously bimodal.</td><td class="u">dex</td><td class="src">Harris 1996/2010</td></tr>
+    </tbody></table></div>
+
+  <h3>Kinematics</h3>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Symbol</th><th>Meaning</th><th>Unit</th><th>Source</th></tr></thead>
+    <tbody>
+      <tr><td class="sym">v<sub>r</sub></td><td>Heliocentric radial velocity — motion along the line of sight.</td><td class="u">km s⁻¹</td><td class="src">Harris / BH18</td></tr>
+      <tr><td class="sym">μ<sub>α*</sub>, μ<sub>δ</sub></td><td>Proper motion — tangential motion on the sky (μα* = μα cos δ). Precise values from Gaia EDR3 cluster-member averages.</td><td class="u">mas yr⁻¹</td><td class="src">VB21</td></tr>
+      <tr><td class="sym">ϖ</td><td>Parallax — geometric distance indicator from Gaia.</td><td class="u">mas</td><td class="src">VB21</td></tr>
+    </tbody></table></div>
+
+  <h3>Structure</h3>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Symbol</th><th>Meaning</th><th>Unit</th><th>Source</th></tr></thead>
+    <tbody>
+      <tr><td class="sym">r<sub>h</sub></td><td>Projected half-light (half-mass) radius — radius enclosing half the cluster light; a measure of compactness.</td><td class="u">pc</td><td class="src">BH18</td></tr>
+      <tr><td class="sym">r<sub>c</sub></td><td>Core radius — where the surface brightness falls to half its central value.</td><td class="u">pc / arcmin</td><td class="src">Harris</td></tr>
+      <tr><td class="sym">c</td><td>Concentration — c = log(r<sub>t</sub>/r<sub>c</sub>), ratio of tidal to core radius; high c means a strongly concentrated cluster.</td><td class="u">—</td><td class="src">Harris</td></tr>
+      <tr><td class="sym">log T<sub>c</sub>, log T<sub>h</sub></td><td>Logarithmic core and half-mass relaxation times — the timescale on which stellar encounters erase memory of the initial conditions.</td><td class="u">yr</td><td class="src">Harris</td></tr>
+      <tr><td class="sym">μ<sub>V</sub></td><td>Central surface brightness.</td><td class="u">mag arcsec⁻²</td><td class="src">Harris</td></tr>
+    </tbody></table></div>
+
+  <h3>Dynamics</h3>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Symbol</th><th>Meaning</th><th>Unit</th><th>Source</th></tr></thead>
+    <tbody>
+      <tr><td class="sym">M</td><td>Total cluster mass (from fitting stellar velocity dispersion profiles; ~×10⁴–10⁶ M☉).</td><td class="u">M☉</td><td class="src">BH18</td></tr>
+      <tr><td class="sym">M/L<sub>V</sub></td><td>V-band mass-to-light ratio — a proxy for the stellar initial mass function and dark remnants.</td><td class="u">M☉/L☉</td><td class="src">BH18</td></tr>
+      <tr><td class="sym">σ<sub>0</sub></td><td>Central (mass-weighted, 1-D) velocity dispersion — random stellar motion in the core; highest in the most massive clusters.</td><td class="u">km s⁻¹</td><td class="src">BH18</td></tr>
+      <tr><td class="sym">v<sub>esc</sub></td><td>Central escape velocity — velocity needed to leave the cluster from its core.</td><td class="u">km s⁻¹</td><td class="src">BH18</td></tr>
+      <tr><td class="sym">log T<sub>rh</sub></td><td>Logarithmic half-mass relaxation time.</td><td class="u">yr</td><td class="src">BH18</td></tr>
+    </tbody></table></div>
+
+  <h3>Orbit (this work)</h3>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Symbol</th><th>Meaning</th><th>Unit</th><th>Source</th></tr></thead>
+    <tbody>
+      <tr><td class="sym">e</td><td>Orbital eccentricity — from back-integration in the MWPotential2014 Galactic potential (0 = circular, 1 = radial).</td><td class="u">—</td><td class="src">this work</td></tr>
+      <tr><td class="sym">r<sub>peri</sub>, r<sub>apo</sub></td><td>Pericentre and apocentre — closest and farthest Galactocentric distances along the orbit.</td><td class="u">kpc</td><td class="src">this work</td></tr>
+      <tr><td class="sym">z<sub>max</sub></td><td>Maximum height above the Galactic plane reached by the orbit.</td><td class="u">kpc</td><td class="src">this work</td></tr>
+      <tr><td class="sym">retro</td><td>Whether the orbit is retrograde (counter to Galactic rotation).</td><td class="u">—</td><td class="src">this work</td></tr>
+    </tbody></table></div>
+
+  <h3>Observational</h3>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Symbol</th><th>Meaning</th><th>Unit</th><th>Source</th></tr></thead>
+    <tbody>
+      <tr><td class="sym">N<sub>star</sub></td><td>Number of Gaia-detected member stars used for the cluster mean astrometry.</td><td class="u">—</td><td class="src">VB21</td></tr>
+    </tbody></table></div>
+</section>
+
+<!-- ================= NOTABLE ================= -->
+<section class="wrap" id="notable">
+  <div class="sec-tag">Notable clusters</div>
+  <h2>Records &amp; special objects</h2>
+  <p class="lead">Values from our master catalog (distances: BH18/Gaia/Harris; orbits: this work),
+    cross-checked against the literature. Where the literature disagrees, both are given.</p>
+
+  <div class="cards">
+    <div class="card">
+      <div class="cat">Nearest</div>
+      <div class="t">M4 <span class="alias">NGC 6121</span></div>
+      <div class="v">d ≈ 2.1 kpc</div>
+      <div class="d">The closest globular cluster to the Sun (lit.: 1.7–2.2 kpc). A metal-poor, low-concentration cluster in Scorpius, visible in binoculars. Hosts the exoplanet PSR B1620−26 b.</div>
+      <div class="ref">Harris 1996/2010 · Peterson et al. 1995</div>
+    </div>
+    <div class="card">
+      <div class="cat">Farthest</div>
+      <div class="t">AM 1 <span class="alias">E 1</span></div>
+      <div class="v">d ≈ 119 kpc</div>
+      <div class="d">The most distant classical Galactic globular cluster, far out in the halo. Faint (V ≈ 15.7) and difficult to observe.</div>
+      <div class="ref">Harris 1996/2010 · Carraro et al. 2021</div>
+    </div>
+    <div class="card">
+      <div class="cat">Brightest &amp; most massive</div>
+      <div class="t">ω Centauri <span class="alias">NGC 5139</span></div>
+      <div class="v">M<sub>V</sub> = −10.2 · M ≈ 3.5×10⁶ M☉</div>
+      <div class="d">The most luminous and most massive globular cluster in the Milky Way, with a spread of stellar metallicities. Widely believed to be the stripped core of an accreted dwarf galaxy — the largest surviving remnant of a disrupted satellite.</div>
+      <div class="ref">Harris 1996/2010 · BH18 · Bekki &amp; Freeman 2003</div>
+    </div>
+    <div class="card">
+      <div class="cat">Most metal-poor</div>
+      <div class="t">M92 <span class="alias">NGC 6341</span> / M15 <span class="alias">NGC 7078</span></div>
+      <div class="v">[Fe/H] ≈ −2.3 to −2.4</div>
+      <div class="d">Among the most metal-poor classical clusters ([Fe/H] ≈ −2.3 dex; M15 often quoted at −2.4). Such clusters sample the earliest chemical enrichment of the Galaxy, shortly after the Big Bang nucleosynthesis floor.</div>
+      <div class="ref">Harris 1996/2010 · Carretta et al. 2009</div>
+    </div>
+    <div class="card">
+      <div class="cat">Most metal-rich</div>
+      <div class="t">Liller 1 / NGC 6528 / Terzan 5</div>
+      <div class="v">[Fe/H] ≈ −0.3 to 0</div>
+      <div class="d">The most metal-rich clusters are crowded, heavily reddened objects near the Galactic centre. Liller 1 ([Fe/H] ≈ −0.3 in the literature) is embedded in one of the densest stellar fields of the bulge.</div>
+      <div class="ref">Saracino et al. 2015 · Ferraro et al. 2009</div>
+    </div>
+    <div class="card">
+      <div class="cat">Closest to Galactic centre</div>
+      <div class="t">NGC 6522 <span class="alias">Baade's Window</span></div>
+      <div class="v">R<sub>gc</sub> ≈ 0.6 kpc</div>
+      <div class="d">Sitting in Baade's Window — a rare low-extinction sightline through the bulge — NGC 6522 is the cluster closest to the Galactic centre (R<sub>gc</sub> = 0.58 kpc, Minniti et al. 2021), with Liller 1 close behind.</div>
+      <div class="ref">Minniti et al. 2021 · Harris 1996/2010</div>
+    </div>
+    <div class="card">
+      <div class="cat">Core-collapsed</div>
+      <div class="t">M15 · M30 · M70 · NGC 6397 · NGC 6752 · NGC 6624</div>
+      <div class="v">post-core-collapse</div>
+      <div class="d">Clusters whose cores have contracted beyond the classical King-model limit, likely through dynamical friction and binary heating. M15 and NGC 6397 are the best-studied examples.</div>
+      <div class="ref">Trager, King &amp; Djorgovski 1995 · Harris 1996/2010</div>
+    </div>
+    <div class="card">
+      <div class="cat">Exoplanet host</div>
+      <div class="t">M4 — PSR B1620−26 b <span class="alias">"Methuselah"</span></div>
+      <div class="v">planet around pulsar + WD binary</div>
+      <div class="d">The only planet known in a globular cluster: a ~2.5 M<sub>Jup</sub> planet orbiting a pulsar–white-dwarf binary, ~12.4 kly away in M4. Its age (~12.7 Gyr) makes it one of the oldest known planets.</div>
+      <div class="ref">Sigurdsson et al. 2003</div>
+    </div>
+    <div class="card">
+      <div class="cat">Largest proper motion</div>
+      <div class="t">M4 <span class="alias">NGC 6121</span></div>
+      <div class="v">|μ| ≈ 19 mas yr⁻¹</div>
+      <div class="d">Its proximity gives M4 the largest measured proper motion among classical globular clusters (μ<sub>δ</sub> ≈ −19 mas yr⁻¹ from Gaia EDR3).</div>
+      <div class="ref">VB21</div>
+    </div>
+    <div class="card">
+      <div class="cat">Most Gaia members</div>
+      <div class="t">ω Centauri</div>
+      <div class="v">≈ 53,000 stars</div>
+      <div class="d">With its huge mass, ω Cen contributes the largest number of Gaia EDR3 member stars used for cluster astrometry.</div>
+      <div class="ref">VB21</div>
+    </div>
+    <div class="card">
+      <div class="cat">Most reddened</div>
+      <div class="t">Liller 1</div>
+      <div class="v">E(B−V) ≈ 3.0</div>
+      <div class="d">Lying behind dense bulge dust, Liller 1 suffers among the heaviest reddening of any cluster (E(B−V) ≈ 3 mag), requiring infrared observations.</div>
+      <div class="ref">Harris 1996/2010 · Saracino et al. 2015</div>
+    </div>
+    <div class="card">
+      <div class="cat">Orbits (this work)</div>
+      <div class="t">47 Tuc &amp; ω Cen</div>
+      <div class="v">e = 0.12 vs 0.69</div>
+      <div class="d">47 Tuc follows a nearly circular disc-like orbit (e ≈ 0.12, z<sub>max</sub> ≈ 3 kpc), while ω Cen has a highly eccentric halo orbit (e ≈ 0.69) — consistent with an accreted origin. Of the 135 clusters with orbits, ~100 are retrograde in our integration.</div>
+      <div class="ref">this work (MWPotential2014)</div>
+    </div>
+  </div>
+
+  <div class="note">⚠ Orbit-based "records" (eccentricity, apo/pericentre, z<sub>max</sub>) depend on the assumed
+    Galactic potential and the 6-D phase-space data; ~8 clusters are unbound in our integration and
+    are excluded from record lists. Treat orbit values as indicative.</div>
+</section>
+
+<!-- ================= LIMITS ================= -->
+<section class="wrap" id="limits">
+  <div class="sec-tag">Data &amp; limitations</div>
+  <h2>How the values were derived</h2>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Quantity</th><th>Primary source</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>l, b, V, M<sub>V</sub>, [Fe/H], E(B−V), v<sub>r</sub>, c, log T<sub>c/h</sub>, μ<sub>V</sub></td><td>Harris (1996, 2010 revision)</td><td>Standard reference catalog (147 clusters).</td></tr>
+      <tr><td>μ<sub>α*</sub>, μ<sub>δ</sub>, ϖ, N<sub>star</sub></td><td>Vasiliev &amp; Baumgardt (2021)</td><td>Gaia EDR3 cluster-member means (170 clusters).</td></tr>
+      <tr><td>d, M, M/L<sub>V</sub>, r<sub>h</sub>, σ<sub>0</sub>, v<sub>esc</sub>, log T<sub>rh</sub></td><td>Baumgardt &amp; Hilker (2018)</td><td>Dynamical fits to velocity-dispersion profiles.</td></tr>
+      <tr><td>e, r<sub>peri</sub>, r<sub>apo</sub>, z<sub>max</sub>, retro</td><td>This work</td><td>3 Gyr back-integration in MWPotential2014 (Bovy 2015), calibrated to v<sub>c</sub>(R☉) = 238 km/s.</td></tr>
+    </tbody></table></div>
+  <p class="lead" style="margin-top:16px">Limitations: distance, proper-motion and radial-velocity uncertainties are not propagated into
+    orbit parameters; the potential is static and axisymmetric (no bar, arms or LMC tide); a few
+    clusters lack Gaia 6-D data and therefore have no orbit.</p>
+</section>
+
+<!-- ================= REFERENCES ================= -->
+<section class="wrap" id="refs">
+  <div class="sec-tag">References</div>
+  <h2>Literature</h2>
+  <ol class="refs">
+    <li>Harris, W. E. (1996). A catalog of parameters for globular clusters on the Milky Way. <i>AJ, 112</i>, 1487.<span class="bib">bibcode: 1996AJ....112.1487H (2010 revision)</span></li>
+    <li>Vasiliev, E., &amp; Baumgardt, H. (2021). Gaia EDR3 view on galactic globular clusters. <i>MNRAS, 505</i>, 5978.<span class="bib">bibcode: 2021MNRAS.505.5978V</span></li>
+    <li>Baumgardt, H., &amp; Hilker, M. (2018). A catalogue of masses, structural parameters, and velocity dispersion profiles of 112 Galactic globular clusters. <i>MNRAS, 478</i>, 1520.<span class="bib">bibcode: 2018MNRAS.478.1520B</span></li>
+    <li>Bica, E., Pavani, D. B., Bonatto, C. J., &amp; Lima, E. F. (2019). A multi-band photometric census of star clusters and candidates in the Milky Way. <i>AJ, 157</i>, 12.<span class="bib">bibcode: 2019AJ....157...12B</span></li>
+    <li>Bovy, J. (2015). galpy: A Python library for Galactic dynamics. <i>ApJS, 216</i>, 29 (MWPotential2014).<span class="bib">bibcode: 2015ApJS..216...29B</span></li>
+    <li>Minniti, D., et al. (2021). Which is the closest globular cluster to the Galactic centre? <i>A&amp;A, 647</i>, L4.<span class="bib">bibcode: 2021A&amp;A...647L...4M</span></li>
+    <li>Saracino, S., et al. (2015). High-resolution spectroscopy of the intermediate-age population in Liller 1. <i>ApJ, 806</i>, 152.<span class="bib">bibcode: 2015ApJ...806..152S</span></li>
+    <li>Ferraro, F. R., et al. (2009). The cluster Terzan 5 as a remnant of a primordial building block of the Galactic bulge. <i>Nature, 462</i>, 483.<span class="bib">bibcode: 2009Natur.462..483F</span></li>
+    <li>Carretta, E., et al. (2009). Na-O anticorrelation and HB. VII. The chemical composition of first and second-generation stars in 19 globular clusters. <i>A&amp;A, 505</i>, 117.<span class="bib">bibcode: 2009A&amp;A...505..117C</span></li>
+    <li>Bekki, K., &amp; Freeman, K. C. (2003). Formation of ω Centauri from an ancient nucleated dwarf galaxy. <i>MNRAS, 346</i>, L11.<span class="bib">bibcode: 2003MNRAS.346L..11B</span></li>
+    <li>Sigurdsson, S., et al. (2003). A young white dwarf companion to pulsar B1620−26: evidence for early planet formation. <i>Science, 301</i>, 193.<span class="bib">bibcode: 2003Sci...301..193S</span></li>
+    <li>Trager, S. C., King, I. R., &amp; Djorgovski, S. (1995). Catalogue of Galactic globular-cluster surface-brightness profiles. <i>AJ, 109</i>, 218.<span class="bib">bibcode: 1995AJ....109..218T</span></li>
+    <li>Peterson, R. C., Rees, R. F., &amp; Cudworth, K. M. (1995). The distance to M4. <i>ApJ, 443</i>, 124.<span class="bib">bibcode: 1995ApJ...443..124P</span></li>
+  </ol>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="lic">
+      Milky Way Globular Cluster Atlas · <a href="../">Home</a> · <a href="../viz/">3D Explorer</a> ·
+      <a href="../plotter/">Plotter</a> · <a href="index.zh.html">中文版</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
