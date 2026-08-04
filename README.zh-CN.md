@@ -22,6 +22,7 @@
 |------|------|
 | **项目门户**（落地页） | https://jianxing-chen.github.io/globular-cluster-atlas/ |
 | **3D 可视化**（直达） | https://jianxing-chen.github.io/globular-cluster-atlas/viz/ |
+| **Plotter 制图台**（直达） | https://jianxing-chen.github.io/globular-cluster-atlas/plotter/ |
 
 托管于 GitHub Pages——纯静态、无需构建、无后端。
 
@@ -37,6 +38,7 @@
 | **恒星流** | **124** 条银河恒星流（galstreams），18 条关联祖源星团 |
 | **银河系结构** | 4 主旋臂 + 本地臂 + Outer 臂 + 中心棒 + 核球 |
 | **静态科学图** | 6 张出版级 PNG |
+| **Plotter 制图台** | APJ 风格制图工作台——6 个模板、彩色模式、误差棒、SVG/PNG 导出 |
 | **3D Web 应用** | 完全本地、双击即开、~120 fps |
 | **项目门户** | 英文落地页，含图片 lightbox 与文献引用链接 |
 
@@ -54,6 +56,16 @@ open viz/index.html        # macOS
 ```
 > 任何现代浏览器（Chrome / Edge / Firefox / Safari）从 `file://` 直接打开即可——
 > 纯经典脚本、无 ES module、无网络请求，完全离线自包含。
+
+### Plotter 制图台（出版级图件工作台）
+```bash
+open plotter/index.html        # macOS
+# start plotter\index.html     # Windows
+# xdg-open plotter/index.html  # Linux
+```
+> 在 176 行星团列表中勾选（或按批量/预设筛选），选择图型与坐标轴，一键导出 APJ 风格图件。
+> 内置 6 个模板（`R_gc vs [Fe/H]`、金属丰度、距离、`M_V vs Mass`、偏心率、近心点/远心点），
+> 支持 viridis 彩色模式、误差棒、对数坐标、分组叠加——SVG 或 300 dpi PNG 导出，附自动图注。
 
 ### 交互
 - **拖拽** 旋转 · **滚轮** 缩放 · **点击星团** 弹出完整信息卡
@@ -155,6 +167,7 @@ python3 export_viz_data.py      # 7 打包给 Web 应用
 
 仓库根目录提供一个**英文项目门户**（`index.html`）：
 - 英雄区 + 统计 + 3D 预览（点击进入）
+- **应用中心**——3D 可视化与 Plotter 制图台的入口卡片
 - 主星表字段覆盖与著名星团抽查表
 - **可点击的来源卡片**（链接到各 VizieR 目录 / GitHub / ADS 文献）
 - 银河系模型与轨道摘要、数据校验表
@@ -174,6 +187,11 @@ GlobularClusterAtlas/
 │   ├── gc_data.js           # 176 球状星团 + 135 轨道
 │   ├── streams_data.js      # 124 恒星流
 │   └── assets/              # three.min.js + OrbitControls（本地化，离线可用）
+├── plotter/                 # ★ APJ 风格制图工作台（打开 plotter/index.html）
+│   ├── index.html
+│   └── plotter.js           # scatter/hist/line/heat 渲染器 + SVG/PNG 导出
+├── webdata/                 # Web 应用共享数据包
+│   └── plotter_data.js      # 176 星团子集（制图台所用参数）
 ├── data/
 │   ├── raw/                 # VizieR 原始 TSV（4 个星表）
 │   └── processed/           # master_catalog.csv/.json/.pkl, orbits.json
@@ -208,6 +226,13 @@ GlobularClusterAtlas/
 | 135 条平滑轨道 | 124 条恒星流 |
 | ![边视](figures/viz_screenshot_edgeon.png) | ![选中](figures/viz_screenshot_select.png) |
 | Edge-on 盘轨道 | 信息卡 + 搜索 |
+
+### Plotter 制图台截图
+
+| | |
+|---|---|
+| ![制图台散点](figures/viz_screenshot_plotter.png) | ![制图台直方图](figures/viz_screenshot_plotter_hist.png) |
+| R_gc vs [Fe/H]——彩色模式 | 金属丰度分布 |
 
 ---
 

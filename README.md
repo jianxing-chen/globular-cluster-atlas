@@ -21,6 +21,7 @@
 |-------|-----|
 | **Project portal** (landing page) | https://jianxing-chen.github.io/globular-cluster-atlas/ |
 | **3D explorer** (direct) | https://jianxing-chen.github.io/globular-cluster-atlas/viz/ |
+| **Plotter** (direct) | https://jianxing-chen.github.io/globular-cluster-atlas/plotter/ |
 
 Hosted on GitHub Pages — fully static, no build step, no backend.
 
@@ -36,6 +37,7 @@ Hosted on GitHub Pages — fully static, no build step, no backend.
 | **Stellar streams** | **124** Milky Way streams (galstreams), 18 linked to GC progenitors |
 | **Galaxy model** | 4 major spiral arms + Local Arm + Outer arm + central bar + bulge |
 | **Static figures** | 6 publication-quality plots |
+| **Plotter** | APJ-style figure workbench — 6 templates, color mode, error bars, SVG/PNG export |
 | **3D web app** | offline, zero-install, ~120 fps |
 | **Project portal** | English landing page with figure lightbox & cited sources |
 
@@ -53,6 +55,17 @@ open viz/index.html        # macOS
 ```
 > Works in any modern browser (Chrome / Edge / Firefox / Safari) straight from `file://` —
 > plain classic scripts, no ES modules, no network requests, fully offline.
+
+### Plotter (publication figure workbench)
+```bash
+open plotter/index.html        # macOS
+# start plotter\index.html     # Windows
+# xdg-open plotter/index.html  # Linux
+```
+> Check clusters in the 176-row list (or batch/preset filters), pick a chart type and axes,
+> and export an APJ-style figure. Six one-click templates (`R_gc vs [Fe/H]`, metallicity,
+> distance, `M_V vs Mass`, eccentricity, pericentre/apocentre), viridis color mode, error bars,
+> log axes, group overlays — SVG or 300-dpi PNG export, caption included.
 
 ### Controls
 - **Drag** to rotate · **scroll** to zoom · **click a cluster** for a full data card
@@ -153,6 +166,7 @@ physically kin to the accreted GCs, together telling the Galaxy's merger history
 
 The repo root serves an **English project portal** (`index.html`) with:
 - Hero + stats + 3D preview (click to launch)
+- **App hub** — entry cards for the 3D explorer and the plotter figure workbench
 - Catalog field-coverage & spot-check tables
 - **Clickable source cards** linking to each VizieR catalog / GitHub / ADS reference
 - Galaxy-model & orbit summaries, a validation table
@@ -172,6 +186,11 @@ GlobularClusterAtlas/
 │   ├── gc_data.js           # 176 clusters + 135 orbits
 │   ├── streams_data.js      # 124 stellar streams
 │   └── assets/              # three.min.js + OrbitControls (local, offline)
+├── plotter/                 # ★ APJ-style figure workbench (open plotter/index.html)
+│   ├── index.html
+│   └── plotter.js           # scatter/hist/line/heat renderers + SVG/PNG export
+├── webdata/                 # shared data bundles for the web apps
+│   └── plotter_data.js      # 176-cluster subset (params used by the plotter)
 ├── data/
 │   ├── raw/                 # raw VizieR TSV (4 catalogs)
 │   └── processed/           # master_catalog.csv/.json/.pkl, orbits.json
@@ -206,6 +225,13 @@ GlobularClusterAtlas/
 | 135 smooth orbits | 124 stellar streams |
 | ![edge-on](figures/viz_screenshot_edgeon.png) | ![select](figures/viz_screenshot_select.png) |
 | Edge-on disc orbit | Info card + search |
+
+### Plotter workbench
+
+| | |
+|---|---|
+| ![plotter scatter](figures/viz_screenshot_plotter.png) | ![plotter hist](figures/viz_screenshot_plotter_hist.png) |
+| R_gc vs [Fe/H] — color mode | Metallicity distribution |
 
 ---
 
