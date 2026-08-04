@@ -51,6 +51,20 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--txt);
 .f-label{font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;color:var(--dim);
   text-transform:uppercase;margin-bottom:8px;display:flex;justify-content:space-between}
 .f-label output{color:var(--acc);letter-spacing:0;font-weight:600}
+/* 双滑块 range (同一轨道双 thumb) */
+.dual-range{position:relative;height:22px}
+.dual-range input[type=range]{position:absolute;inset:0;width:100%;height:100%;
+  -webkit-appearance:none;appearance:none;background:none;outline:none;margin:0;pointer-events:none}
+.dual-range input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;
+  width:13px;height:13px;border-radius:50%;background:#fff;border:2px solid var(--acc2);
+  cursor:pointer;box-shadow:0 0 8px var(--acc2);pointer-events:auto;transition:transform .15s;margin-top:0}
+.dual-range input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.25)}
+.dual-range input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;
+  background:#fff;border:2px solid var(--acc2);cursor:pointer;pointer-events:auto}
+.dual-range .dual-track{position:absolute;top:9px;left:0;right:0;height:4px;border-radius:2px;
+  background:rgba(120,160,255,.16);pointer-events:none}
+.dual-range .dual-track .fill{position:absolute;top:0;bottom:0;border-radius:2px;
+  background:linear-gradient(90deg,var(--acc2),var(--acc))}
 input[type=range]{width:100%;-webkit-appearance:none;appearance:none;height:3px;border-radius:2px;
   background:linear-gradient(90deg,var(--acc2),var(--acc));outline:none;cursor:pointer}
 input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:13px;height:13px;
@@ -242,16 +256,23 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;
     </div>
     <div class="f-group">
       <div class="f-label">[Fe/H] range <output id="o-feh">all</output></div>
-      <input type="range" id="r-feh-lo" min="-2.6" max="0.3" step="0.05" value="-2.6">
-      <input type="range" id="r-feh-hi" min="-2.6" max="0.3" step="0.05" value="0.3" style="margin-top:5px">
+      <div class="dual-range">
+        <div class="dual-track" id="trk-feh"></div>
+        <input type="range" id="r-feh-lo" min="-2.6" max="0.3" step="0.05" value="-2.6">
+        <input type="range" id="r-feh-hi" min="-2.6" max="0.3" step="0.05" value="0.3">
+      </div>
     </div>
     <div class="f-group">
       <div class="f-label">Galactocentric R <output id="o-rgc">≤ 130</output></div>
       <input type="range" id="r-rgc" min="1" max="130" step="1" value="130">
     </div>
     <div class="f-group">
-      <div class="f-label">Min luminosity <output id="o-mv">all</output></div>
-      <input type="range" id="r-mv" min="-11" max="-3" step="0.2" value="-3">
+      <div class="f-label">Luminosity (M_V) <output id="o-mv">all</output></div>
+      <div class="dual-range">
+        <div class="dual-track" id="trk-mv"></div>
+        <input type="range" id="r-mv-lo" min="-11" max="-3" step="0.2" value="-11">
+        <input type="range" id="r-mv-hi" min="-11" max="-3" step="0.2" value="-3">
+      </div>
     </div>
     <div class="f-group">
       <label class="tgl"><span>Show orbits</span><input type="checkbox" id="t-orbit"><span class="sw"></span></label>

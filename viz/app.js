@@ -553,6 +553,26 @@ function buildOrbit(c) {
 }
 CL.forEach(c => { if (c.orbit) { const l = buildOrbit(c); if (l) { orbitLines[c.id] = l; orbitGroup.add(l); } } });
 
+// 轨道跟随筛选: 只显示筛选后可见星团的轨道
+function updateOrbitVisibility() {
+  for (let i = 0; i < N; i++) {
+    const line = orbitLines[CL[i].id];
+    if (!line) continue;
+    line.visible = visArr[i] > 0.5;      // 筛选隐藏的星团, 其轨道也隐藏
+  }
+}
+// 调试/验证钩子: 返回可见轨道数
+window.__orbitStats = () => {
+  let vis = 0, total = 0;
+  for (let i = 0; i < N; i++) {
+    const line = orbitLines[CL[i].id];
+    if (!line) continue;
+    total++;
+    if (line.visible) vis++;
+  }
+  return { visible: vis, total };
+};
+
 // single highlighted orbit (for selection)
 let selOrbit = null;
 function showSelOrbit(c) {
@@ -745,7 +765,7 @@ renderer.domElement.addEventListener('pointermove', e => {
 
 // ---------- filters ----------
 const visArr = vis;
-let F = { fehLo: -2.6, fehHi: 0.3, rgc: 130, mv: -3 };
+let F = { fehLo: -2.6, fehHi: 0.3, rgc: 130, mvLo: -11, mvHi: -3 };
 function applyFilters() {
   let n = 0;
   for (let i = 0; i < N; i++) {
@@ -753,12 +773,13 @@ function applyFilters() {
     let ok = true;
     if (c.feh != null && (c.feh < F.fehLo || c.feh > F.fehHi)) ok = false;
     if (c.rgc != null && c.rgc > F.rgc) ok = false;
-    if (F.mv > -3 && (c.MV == null || c.MV > F.mv)) ok = false;
+    if (c.MV != null && (c.MV < F.mvLo || c.MV > F.mvHi)) ok = false;
     if (c.x == null) ok = false;
     visArr[i] = ok ? 1 : 0; if (ok) n++;
   }
   geo.attributes.aVis.needsUpdate = true;
   $('n-vis').textContent = n;
+  updateOrbitVisibility();          // 轨道跟随筛选
 }
 
 // ---------- UI wiring ----------
@@ -789,11 +810,34 @@ $('seg-size').addEventListener('click', e => {
   [...$('seg-size').children].forEach(x => x.classList.remove('on'));
   b.classList.add('on'); sizeBy = b.dataset.v; computeSizes();
 });
-$('r-feh-lo').oninput = e => { F.fehLo = +e.target.value; updFeh(); };
-$('r-feh-hi').oninput = e => { F.fehHi = +e.target.value; updFeh(); };
-function updFeh(){ $('o-feh').textContent = `${F.fehLo.toFixed(1)}…${F.fehHi.toFixed(1)}`; applyFilters(); }
+// ---------- 双滑块 range 联动 ----------
+// 通用: 两个 input 叠放同轨道, 中间填充高亮显示选中区间
+function bindDualRange(loId, hiId, min, max, key, fillId) {
+  const lo = $(loId), hi = $(hiId), fill = $(fillId);
+  const updateFill = () => {
+    const pctLo = (lo.value - min) / (max - min) * 100;
+    const pctHi = (hi.value - min) / (max - min) * 100;
+    fill.style.left = pctLo + '%'; fill.style.width = (pctHi - pctLo) + '%';
+  };
+  lo.oninput = () => { if (+lo.value > +hi.value) lo.value = hi.value; F[key+'Lo'] = +lo.value; updDual(key, updateFill); };
+  hi.oninput = () => { if (+hi.value < +lo.value) hi.value = lo.value; F[key+'Hi'] = +hi.value; updDual(key, updateFill); };
+  return { lo, hi, updateFill };
+}
+function updDual(key, updateFill) {
+  updateFill();
+  if (key === 'feh') {
+    $('o-feh').textContent = F.fehLo <= -2.6 && F.fehHi >= 0.3 ? 'all' :
+      `${F.fehLo.toFixed(1)}…${F.fehHi.toFixed(1)}`;
+  } else if (key === 'mv') {
+    $('o-mv').textContent = F.mvLo <= -11 && F.mvHi >= -3 ? 'all' :
+      `${F.mvLo.toFixed(1)}…${F.mvHi.toFixed(1)}`;
+  }
+  applyFilters();
+}
+const fehDual = bindDualRange('r-feh-lo', 'r-feh-hi', -2.6, 0.3, 'feh', 'trk-feh');
+const mvDual  = bindDualRange('r-mv-lo', 'r-mv-hi', -11, -3, 'mv', 'trk-mv');
+fehDual.updateFill(); mvDual.updateFill();
 $('r-rgc').oninput = e => { F.rgc = +e.target.value; $('o-rgc').textContent = '≤ ' + F.rgc; applyFilters(); };
-$('r-mv').oninput = e => { F.mv = +e.target.value; $('o-mv').textContent = F.mv <= -3 ? 'all' : 'M_V ≤ ' + F.mv.toFixed(1); applyFilters(); };
 $('t-orbit').onchange = e => { orbitGroup.visible = e.target.checked; };
 $('t-arms').onchange = e => { armsGroup.visible = barGroup.visible = e.target.checked; };
 $('t-streams').onchange = e => { streamsGroup.visible = e.target.checked;
@@ -869,10 +913,12 @@ function resetAll() {
   [...$('seg-size').children].forEach(x => x.classList.toggle('on', x.dataset.v === 'mv'));
   computeSizes();
   // 4. 筛选回默认
-  F = { fehLo: -2.6, fehHi: 0.3, rgc: 130, mv: -3 };
+  F = { fehLo: -2.6, fehHi: 0.3, rgc: 130, mvLo: -11, mvHi: -3 };
   $('r-feh-lo').value = -2.6; $('r-feh-hi').value = 0.3;
-  $('r-rgc').value = 130; $('r-mv').value = -3;
+  $('r-mv-lo').value = -11; $('r-mv-hi').value = -3;
+  $('r-rgc').value = 130;
   $('o-feh').textContent = 'all'; $('o-rgc').textContent = '≤ 130'; $('o-mv').textContent = 'all';
+  fehDual.updateFill(); mvDual.updateFill();
   applyFilters();
   // 5. 开关回默认
   const defs = { 't-orbit': false, 't-streams': false, 't-arms': true,
