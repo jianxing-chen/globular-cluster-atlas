@@ -196,6 +196,7 @@ footer .lic{font-family:var(--mono);font-size:11px;color:var(--faint);letter-spa
       <a href="#validation">Validation</a>
       <a href="#gallery">Gallery</a>
       <a href="#reproduce">Reproduce</a>
+      <a href="#cite">Cite</a>
     </div>
     <a class="cta-nav" href="#apps">Apps</a>
   </div>
@@ -429,6 +430,63 @@ python3 export_viz_data.py     <span class="c"># 7 bundle web data</span></pre>
       <div class="note">Dependencies: numpy · pandas · matplotlib · scipy (orbits/figures are self-implemented; no astropy/galpy needed)</div>
     </div>
   </div>
+</section>
+
+<section class="wrap" id="cite">
+  <div class="sec-tag">Citation &amp; Acknowledgement</div>
+  <h2>How to Cite This Work</h2>
+  <p class="lead">If you use the atlas (its web apps, catalogs, figures, or code) in a publication,
+    presentation, or derivative work, please cite it and acknowledge the underlying data sources.
+    Suggested formats below.</p>
+
+  <div class="cols">
+    <div>
+      <h3 class="col-head">Cite the project <span>APA style</span></h3>
+      <pre><span class="c"># APA</span>
+Chen, J. (2026). <i>Milky Way Globular Cluster Atlas</i> [Computer software].
+Retrieved from https://github.com/jianxing-chen/globular-cluster-atlas</pre>
+      <h3 class="col-head" style="margin-top:18px">BibTeX <span>LaTeX / Overleaf</span></h3>
+      <pre><span class="c"># BibTeX</span>
+@software{chen2026gcatlas,
+  author = {Chen, Jianxing},
+  title  = {Milky Way Globular Cluster Atlas},
+  year   = {2026},
+  url    = {https://github.com/jianxing-chen/globular-cluster-atlas},
+  note   = {Interactive 3D explorer + APJ-style figure workbench}
+}</pre>
+    </div>
+    <div>
+      <h3 class="col-head">Cite the underlying data</h3>
+      <div class="srcs" style="grid-template-columns:1fr">
+        <a class="src" href="https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=VII/202" target="_blank" rel="noopener">
+          <div class="t">Harris (1996, 2010 revision) <span class="ext">↗</span></div>
+          <div class="d">Harris, W. E. (1996). A catalog of parameters for globular clusters on the Milky Way. <i>AJ, 112</i>, 1487. Data via VizieR <span class="mono">VII/202</span>.</div></a>
+        <a class="src" href="https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=J/MNRAS/505/5978" target="_blank" rel="noopener">
+          <div class="t">Vasiliev &amp; Baumgardt (2021) <span class="ext">↗</span></div>
+          <div class="d">Vasiliev, E., &amp; Baumgardt, H. (2021). Gaia EDR3 view on galactic globular clusters. <i>MNRAS, 505</i>, 5978.</div></a>
+        <a class="src" href="https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=J/MNRAS/478/1520" target="_blank" rel="noopener">
+          <div class="t">Baumgardt &amp; Hilker (2018) <span class="ext">↗</span></div>
+          <div class="d">Baumgardt, H., &amp; Hilker, M. (2018). A catalogue of masses, structural parameters, and velocity dispersion profiles of 112 Galactic globular clusters. <i>MNRAS, 478</i>, 1520.</div></a>
+        <a class="src" href="https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=J/AJ/157/12" target="_blank" rel="noopener">
+          <div class="t">Bica et al. (2019) <span class="ext">↗</span></div>
+          <div class="d">Bica, E., Pavani, D. B., Bonatto, C. J., &amp; Lima, E. F. (2019). A multi-band photometric census of star clusters and candidates in the Milky Way. <i>AJ, 157</i>, 12.</div></a>
+        <a class="src" href="https://github.com/cmateu/galstreams" target="_blank" rel="noopener">
+          <div class="t">galstreams — Mateu (2023) <span class="ext">↗</span></div>
+          <div class="d">Mateu, C. (2023). galstreams: A library of Milky Way stellar stream tracks and trails. <i>MNRAS, 520</i>, 5225.</div></a>
+      </div>
+    </div>
+  </div>
+
+  <h3 class="col-head" style="margin-top:26px">Acknowledgement template</h3>
+  <pre><span class="c"># Suggested acknowledgement text</span>
+This work made use of the Milky Way Globular Cluster Atlas (Chen 2026,
+https://github.com/jianxing-chen/globular-cluster-atlas). The atlas aggregates
+catalogues from CDS VizieR (Harris 1996/2010; Vasiliev &amp; Baumgardt 2021;
+Baumgardt &amp; Hilker 2018; Bica et al. 2019) and stellar-stream tracks from the
+galstreams library (Mateu 2023). This work has made use of data from the
+European Space Agency (ESA) mission Gaia, processed by the Gaia Data
+Processing and Analysis Consortium (DPAC).</pre>
+  <div class="note" style="margin-top:12px">The project is released under the <a href="LICENSE">MIT License</a>; the aggregated data remain the property of their respective authors and institutions (see <a href="#sources">Sources</a>).</div>
 </section>
 
 <footer>
