@@ -456,6 +456,8 @@ const selMarker = star('rgba(255,255,255,0.9)', 2.2); selMarker.visible = false;
 function cell(k, v, unit='') {
   return `<div class="i-cell"><div class="k">${k}</div><div class="v">${v}<small> ${unit}</small></div></div>`;
 }
+// LaTeX 风格数学符号: 衬线斜体变量 + 下标
+const mx = (s, sub) => `<i class="mx">${s}</i>${sub ? `<sub>${sub}</sub>` : ''}`;
 function fmt(v, nd = 2, na = '—') { return (v == null || isNaN(v)) ? na : (+v).toFixed(nd); }
 
 function showInfo(c) {
@@ -465,15 +467,15 @@ function showInfo(c) {
   const o = c.orbit;
   $('i-grid').innerHTML =
     cell('Distance', fmt(c.dist, 2), 'kpc') +
-    cell('R_gc', fmt(c.rgc, 2), 'kpc') +
+    cell(mx('R', 'gc'), fmt(c.rgc, 2), 'kpc') +
     cell('[Fe/H]', fmt(c.feh, 2), 'dex') +
-    cell('M_V', fmt(c.MV, 2), 'mag') +
+    cell(mx('M', 'V'), fmt(c.MV, 2), 'mag') +
     cell('Mass', c.mass ? (c.mass/1e5).toFixed(2)+'e5' : '—', 'M☉') +
-    cell('r_h', fmt(c.rh, 2), 'pc') +
-    cell('V_r', fmt(c.vr, 1), 'km/s') +
-    cell('σ₀', fmt(c.sigma0, 1), 'km/s') +
-    (o ? cell('Ecc', fmt(o.ecc, 3)) + cell('R_peri/apo', fmt(o.rperi,1)+' / '+fmt(o.apo?o.apo:o.rapo,1), 'kpc') : '') +
-    cell('l', fmt(c.l, 1), '°') + cell('b', fmt(c.b, 1), '°');
+    cell(mx('r', 'h'), fmt(c.rh, 2), 'pc') +
+    cell(mx('V', 'r'), fmt(c.vr, 1), 'km/s') +
+    cell(mx('σ', '0'), fmt(c.sigma0, 1), 'km/s') +
+    (o ? cell(mx('e'), fmt(o.ecc, 3)) + cell(mx('R','peri')+' / '+mx('R','apo'), fmt(o.rperi,1)+' / '+fmt(o.apo?o.apo:o.rapo,1), 'kpc') : '') +
+    cell(mx('l'), fmt(c.l, 1), '°') + cell(mx('b'), fmt(c.b, 1), '°');
   $('info').classList.add('show');
   // marker
   selMarker.position.copy(V(c.x, c.y, c.z)); selMarker.visible = true;
@@ -492,24 +494,24 @@ function showDetail(c) {
   let html = '<table class="d-table">';
   html += `<tr class="d-sec"><td colspan="2">Position &amp; Distance</td></tr>`;
   html += row2('RA (J2000)', fmt(c.ra, 3), '°') + row2('Dec (J2000)', fmt(c.dec, 3), '°');
-  html += row2('l', fmt(c.l, 2), '°') + row2('b', fmt(c.b, 2), '°');
+  html += row2(mx('l'), fmt(c.l, 2), '°') + row2(mx('b'), fmt(c.b, 2), '°');
   html += row2('Distance', fmt(c.dist, 2), 'kpc') + row2('dist src', c.dist_src || '—');
-  html += row2('R_gc', fmt(c.rgc, 2), 'kpc');
+  html += row2(mx('R', 'gc'), fmt(c.rgc, 2), 'kpc');
   html += `<tr class="d-sec"><td colspan="2">Photometry &amp; Metallicity</td></tr>`;
-  html += row2('V', fmt(c.V, 2), 'mag') + row2('M_V', fmt(c.MV, 2), 'mag');
-  html += row2('[Fe/H]', fmt(c.feh, 2), 'dex') + row2('E(B−V)', fmt(c.ebv, 3), 'mag');
+  html += row2(mx('V'), fmt(c.V, 2), 'mag') + row2(mx('M', 'V'), fmt(c.MV, 2), 'mag');
+  html += row2('[Fe/H]', fmt(c.feh, 2), 'dex') + row2(mx('E')+'('+mx('B')+'−'+mx('V')+')', fmt(c.ebv, 3), 'mag');
   html += `<tr class="d-sec"><td colspan="2">Kinematics (Gaia EDR3)</td></tr>`;
-  html += row2('pm_α*', fmt(c.pmra, 3), 'mas/yr') + row2('pm_δ', fmt(c.pmde, 3), 'mas/yr');
-  html += row2('V_r', fmt(c.vr, 1), 'km/s') + row2('N★', has(c.nstar) ? c.nstar : '—');
+  html += row2(mx('μ','α*'), fmt(c.pmra, 3), 'mas/yr') + row2(mx('μ','δ'), fmt(c.pmde, 3), 'mas/yr');
+  html += row2(mx('V','r'), fmt(c.vr, 1), 'km/s') + row2(mx('N','★'), has(c.nstar) ? c.nstar : '—');
   html += `<tr class="d-sec"><td colspan="2">Structure &amp; Dynamics</td></tr>`;
   html += row2('Mass', has(c.mass) ? (c.mass/1e5).toFixed(2)+'×10⁵' : '—', 'M☉');
-  html += row2('M/L_V', fmt(c.ml, 2)) + row2('r_h', fmt(c.rh, 2), 'pc');
-  html += row2('σ₀', fmt(c.sigma0, 1), 'km/s') + row2('v_esc', fmt(c.vesc, 1), 'km/s');
-  html += row2('c', fmt(c.c, 2)) + row2('log T_rh', fmt(c.logtrh, 2), 'yr');
+  html += row2(mx('M')+'/'+mx('L','V'), fmt(c.ml, 2)) + row2(mx('r','h'), fmt(c.rh, 2), 'pc');
+  html += row2(mx('σ','0'), fmt(c.sigma0, 1), 'km/s') + row2(mx('v','esc'), fmt(c.vesc, 1), 'km/s');
+  html += row2(mx('c'), fmt(c.c, 2)) + row2('log '+mx('T','rh'), fmt(c.logtrh, 2), 'yr');
   if (c.orbit) {
     html += `<tr class="d-sec"><td colspan="2">Orbit (MWPotential2014, 3 Gyr)</td></tr>`;
-    html += row2('R_peri', fmt(o.rperi, 2), 'kpc') + row2('R_apo', fmt(o.apo, 2), 'kpc');
-    html += row2('eccentricity', fmt(o.ecc, 3)) + row2('z_max', fmt(o.zmax, 2), 'kpc');
+    html += row2(mx('R','peri'), fmt(o.rperi, 2), 'kpc') + row2(mx('R','apo'), fmt(o.apo, 2), 'kpc');
+    html += row2(mx('e'), fmt(o.ecc, 3)) + row2(mx('z','max'), fmt(o.zmax, 2), 'kpc');
     html += row2('sense', o.retro ? 'retrograde 逆行' : 'prograde 顺行');
   }
   html += '</table>';
@@ -561,9 +563,9 @@ renderer.domElement.addEventListener('pointermove', e => {
         setHover(i);
         htip.innerHTML = `<div class="ht-name">${c.name}</div>` +
           (c.id !== c.name ? `<div class="ht-id">${c.id}</div>` : '') +
-          `<div class="ht-row"><span>d</span><b>${fmt(c.dist,2)} kpc</b></div>` +
+          `<div class="ht-row"><span>${mx('d')}</span><b>${fmt(c.dist,2)} kpc</b></div>` +
           `<div class="ht-row"><span>[Fe/H]</span><b>${fmt(c.feh,2)}</b></div>` +
-          `<div class="ht-row"><span>M_V</span><b>${fmt(c.MV,2)}</b></div>` +
+          `<div class="ht-row"><span>${mx('M','V')}</span><b>${fmt(c.MV,2)}</b></div>` +
           `<div class="ht-hint">click for details</div>`;
         htip.style.opacity = 1;
         // 防止超出屏幕右/下边缘
