@@ -597,18 +597,27 @@ function applyFilters() {
 }
 
 // ---------- UI wiring ----------
-$('seg-color').addEventListener('click', e => {
-  const b = e.target.closest('button'); if (!b) return;
-  [...$('seg-color').children].forEach(x => x.classList.remove('on'));
-  b.classList.add('on'); colorBy = b.dataset.v; refreshColors();
-  const L = { feh: ['Metallicity [Fe/H]', '−2.4', '−1.3', '−0.3', 'linear-gradient(90deg,#5b8cff,#9fc0ff,#f0e6c8,#ffb454,#ff5d47)'],
-    mv: ['Luminosity M_V', '−11', '−7', '−3', 'linear-gradient(90deg,#3a2a6a,#7a5cff,#c0a8ff,#fff)'],
-    mass: ['Mass (M☉)', '1e4', '1e5', '1e6+', 'linear-gradient(90deg,#0a4a5a,#2a9db0,#8fe0d0,#fff)'],
-    ecc: ['Eccentricity', '0', '0.5', '1', 'linear-gradient(90deg,#2a2a8a,#6a5cff,#c05cff,#ff6a9a)'],
+// 图例渐变直接从渲染颜色函数采样生成, 保证与星团实际颜色严格一致
+function legendGradient(fn, n = 7) {
+  const stops = [];
+  for (let i = 0; i < n; i++) stops.push('#' + fn(i / (n - 1)).getHexString());
+  return `linear-gradient(90deg,${stops.join(',')})`;
+}
+function updateLegend() {
+  const L = { feh: ['Metallicity [Fe/H]', '−2.4', '−1.3', '−0.3', legendGradient(t => fehColor(t))],
+    mv: ['Luminosity M_V', '−11', '−7', '−3', legendGradient(t => C.mv(t))],
+    mass: ['Mass (M☉)', '1e4', '1e5', '1e6+', legendGradient(t => C.mass(t))],
+    ecc: ['Eccentricity', '0', '0.5', '1', legendGradient(t => C.ecc(t))],
     pop: ['Population', 'Halo', '', 'Bulge/Disc', 'linear-gradient(90deg,#5b8cff,#5b8cff,#ff5d47,#ff5d47)'] }[colorBy];
   $('leg-ttl').textContent = L[0]; $('leg-lo').textContent = L[1];
   $('leg-mid').textContent = L[2]; $('leg-hi').textContent = L[3];
   $('leg-bar').style.background = L[4];
+}
+$('seg-color').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  [...$('seg-color').children].forEach(x => x.classList.remove('on'));
+  b.classList.add('on'); colorBy = b.dataset.v; refreshColors();
+  updateLegend();
 });
 $('r-feh-lo').oninput = e => { F.fehLo = +e.target.value; updFeh(); };
 $('r-feh-hi').oninput = e => { F.fehHi = +e.target.value; updFeh(); };
@@ -680,9 +689,7 @@ function resetAll() {
   colorBy = 'feh';
   [...$('seg-color').children].forEach(x => x.classList.toggle('on', x.dataset.v === 'feh'));
   refreshColors();
-  $('leg-ttl').textContent = 'Metallicity [Fe/H]';
-  $('leg-lo').textContent = '−2.4'; $('leg-mid').textContent = '−1.3'; $('leg-hi').textContent = '−0.3';
-  $('leg-bar').style.background = 'linear-gradient(90deg,#5b8cff,#9fc0ff,#f0e6c8,#ffb454,#ff5d47)';
+  updateLegend();
   // 4. 筛选回默认
   F = { fehLo: -2.6, fehHi: 0.3, rgc: 130, mv: -3 };
   $('r-feh-lo').value = -2.6; $('r-feh-hi').value = 0.3;
@@ -737,6 +744,7 @@ addEventListener('resize', () => {
 });
 
 $('n-cl').textContent = D.meta.n;
+updateLegend();   // 初始图例与渲染一致(不依赖 CSS 默认值)
 applyFilters();
 document.getElementById('loader').classList.add('done');
 setTimeout(() => $('hint').style.opacity = 0, 9000);
