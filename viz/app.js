@@ -16,10 +16,20 @@ CL.forEach(c => {
   const m = nm.match(/M\s?(\d+)/i) || (c.id && c.id.match(/^M\s?(\d+)$/i));
   if (m) msg = 'M' + m[1];
   c.msg = msg;
+  // 主名/别名: 常用名( Messier > 昵称 )为主, NGC 编号为辅
+  let main, sub = [];
+  if (msg) {
+    main = msg;
+    if (fmtId(c.id) !== msg) sub.push(fmtId(c.id));
+  } else if (nm && nm !== c.id) {
+    main = nm;
+    sub.push(fmtId(c.id));
+  } else {
+    main = fmtId(c.id);
+  }
+  c.main = main; c.sub = sub;
   // 显示名: "M13 · NGC 6205" / "47 Tuc · NGC 104" / "NGC 104"
-  if (msg) c.disp = msg + ' · ' + fmtId(c.id);
-  else if (nm && nm !== c.id) c.disp = nm + ' · ' + fmtId(c.id);
-  else c.disp = fmtId(c.id);
+  c.disp = sub.length ? main + ' · ' + sub[0] : main;
   // 搜索键: 归一化名称/ID/Messier/纯数字
   c.keys = [normKey(nm), normKey(c.id), msg ? normKey(msg) : '', c.id.replace(/\D/g, '')].filter(Boolean);
 });
@@ -512,7 +522,7 @@ function fmt(v, nd = 2, na = '—') { return (v == null || isNaN(v)) ? na : (+v)
 
 function showInfo(c) {
   selected = c;
-  $('i-name').textContent = c.disp || c.name;
+  $('i-name').innerHTML = `${c.main || c.name}<span class="als">${c.sub.length ? c.sub.join(' · ') : ''}</span>`;
   $('i-alias').textContent = '';
   const o = c.orbit;
   $('i-grid').innerHTML =
@@ -611,7 +621,7 @@ renderer.domElement.addEventListener('pointermove', e => {
       if (visArr[i] > 0.5) {
         const c = CL[i];
         setHover(i);
-        htip.innerHTML = `<div class="ht-name">${c.disp || c.name}</div>` +
+        htip.innerHTML = `<div class="ht-name">${c.main || c.name}<span class="als">${c.sub.length ? c.sub.join(' · ') : ''}</span></div>` +
           (c.id !== c.name ? `<div class="ht-id">${c.id}</div>` : '') +
           `<div class="ht-row"><span>${mx('d')}</span><b>${fmt(c.dist,2)} kpc</b></div>` +
           `<div class="ht-row"><span>[Fe/H]</span><b>${fmt(c.feh,2)}</b></div>` +
@@ -775,7 +785,7 @@ function doSearch(s) {
   const nq = s.replace(/\s+/g, '');
   const hits = CL.filter(c => c.keys.some(k => k.includes(nq))).slice(0, 8);
   if (!hits.length) { sugg.classList.remove('show'); return; }
-  sugg.innerHTML = hits.map(c => `<div class="it" data-id="${c.id}"><span>${c.disp || c.name}</span><small>${fmt(c.dist,1)}k</small></div>`).join('');
+  sugg.innerHTML = hits.map(c => `<div class="it" data-id="${c.id}"><span>${c.main || c.name}<small class="als">${c.sub.length ? c.sub.join(' · ') : ''}</small></span><small>${fmt(c.dist,1)}k</small></div>`).join('');
   sugg.classList.add('show');
   [...sugg.children].forEach(el => el.onclick = () => {
     const c = CL.find(x => x.id === el.dataset.id);
