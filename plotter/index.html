@@ -12,6 +12,13 @@
   --acc:#7fd4ff; --acc2:#4f8dff; --warm:#ffb454;
   --mono:"SF Mono","JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
 }
+/* 亮色主题: body[data-theme="light"] 覆盖变量 */
+body[data-theme="light"]{
+  --bg:#f2f5fb; --bg2:#e7ecf5; --panel:#ffffff; --panel2:#f1f4fa;
+  --line:rgba(25,50,100,.14); --line2:rgba(25,50,100,.26);
+  --txt:#182136; --dim:#55658a; --faint:#93a0bc;
+  --acc:#2f6fd8; --acc2:#4f8dff; --warm:#b97a1d;
+}
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--txt);
   font-family:-apple-system,"Inter","Segoe UI",Helvetica,Arial,sans-serif;
@@ -323,6 +330,7 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;
     <span style="flex:1"></span>
     <button class="btn" id="btn-png">Export PNG</button>
     <button class="btn" id="btn-svg">Export SVG</button>
+    <button class="btn" id="btn-theme" title="Toggle light/dark theme">☀</button>
   </div>
 
   <div id="canvas-wrap">

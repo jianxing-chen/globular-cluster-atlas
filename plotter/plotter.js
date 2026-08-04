@@ -295,8 +295,35 @@ const canvas = $('plot-canvas');
 const ctx = canvas ? canvas.getContext('2d') : null;
 
 const MARGINS = { l: 64, r: 16, t: 12, b: 44 };
-const INK = '#000';
-const SERIES = ['#000', '#666', '#aaa', '#333'];        // 多系列灰度色板
+// 画布主题: 由 applyTheme() 按 theme 赋值(暗: 深底浅字; 亮: 白底黑字 APJ)
+let INK = '#000';          // 主轴/文字
+let PAPER = '#fff';        // 画布背景
+let DIM = '#999';          // 次要元素(误差棒/空态提示)
+let SERIES = ['#000', '#666', '#aaa', '#333'];   // 多系列灰度色板
+let TREND_FILL = 'rgba(0,0,0,0.15)';             // trend 阴影带
+let TREND_SVG = { fill: '#000000', opacity: 0.15 };      // trend 阴影带(SVG 版)
+const THEMES = {
+  dark:  { INK: '#dfe7ff', PAPER: '#0a0f1f', DIM: '#55608a',
+           SERIES: ['#dfe7ff', '#8fa0c8', '#5a6690', '#3a4460'],
+           TREND_FILL: 'rgba(223,231,255,0.14)', TREND_SVG: { fill: '#dfe7ff', opacity: 0.14 } },
+  light: { INK: '#000', PAPER: '#fff', DIM: '#999',
+           SERIES: ['#000', '#666', '#aaa', '#333'],
+           TREND_FILL: 'rgba(0,0,0,0.15)', TREND_SVG: { fill: '#000000', opacity: 0.15 } },
+};
+let theme = 'dark';
+function applyTheme() {
+  const t = THEMES[theme] || THEMES.dark;
+  INK = t.INK; PAPER = t.PAPER; DIM = t.DIM; SERIES = t.SERIES; TREND_FILL = t.TREND_FILL; TREND_SVG = t.TREND_SVG;
+}
+function setTheme(t) {
+  theme = (t === 'light' || t === 'dark') ? t : 'dark';
+  applyTheme();
+  if (document.body) document.body.dataset.theme = theme;
+  try { localStorage.setItem('plotter-theme', theme); } catch (e) {}
+  const btn = $('btn-theme');
+  if (btn) btn.textContent = theme === 'dark' ? '☀' : '☾';
+  draw();
+}
 const VIRIDIS_STOPS = ['#440154', '#3b528b', '#21918c', '#5ec962', '#fde725'];
 const TICK_FONT = '12px Georgia, "Times New Roman", serif';
 const LABEL_FONT = 'italic 14px Georgia, "Times New Roman", serif';
@@ -438,13 +465,13 @@ function draw(target) {
   if (!g || !canvas) return;
   const W = canvas.width, H = canvas.height;
   g.clearRect(0, 0, W, H);
-  g.fillStyle = '#fff';
+  g.fillStyle = PAPER;
   g.fillRect(0, 0, W, H);
   plotRect = { x: MARGINS.l, y: MARGINS.t, w: W - MARGINS.l - MARGINS.r, h: H - MARGINS.t - MARGINS.b };
 
   // 空选中态: 画布中央一行灰色斜体提示(衬线), 不画坐标轴/数据; 导出按钮统一禁用
   if (selected.size === 0) {
-    g.fillStyle = '#666';
+    g.fillStyle = DIM;
     g.font = 'italic 20px Georgia, "Times New Roman", serif';
     g.textAlign = 'center';
     g.textBaseline = 'middle';
@@ -617,7 +644,7 @@ function pointColor(c) {
     const r = paramRange(cfg.colorParam, false);
     const v = getParam(c, cfg.colorParam);
     if (r && v != null) return viridis(norm01(v, r.min, r.max));
-    return '#666';
+    return DIM;
   }
   const g = groupOf(c);
   return SERIES[g == null ? 0 : g];
@@ -655,7 +682,7 @@ function renderScatter(ctx, xScale, yScale) {
     const g = groupOf(c), col = pointColor(c);
     if (e) {
       const err = e.abs != null ? e.abs : e.f * Math.abs(yv);
-      ctx.strokeStyle = '#999'; ctx.lineWidth = 1;
+      ctx.strokeStyle = DIM; ctx.lineWidth = 1;
       ctx.beginPath(); ctx.moveTo(x, yScale(yv - err)); ctx.lineTo(x, yScale(yv + err)); ctx.stroke();
     }
     ctx.beginPath();
@@ -713,8 +740,8 @@ function renderHist(ctx, xScale, yScale) {
   for (let b = 0; b < bins; b++) {
     const x0 = xScale(lo + b * binW);
     const c0 = counts[b][0], c1 = counts[b][1];
-    if (c0 > 0) { ctx.fillStyle = '#000'; ctx.fillRect(x0 + bwFull * 0.05, yOf(c0), bwDraw, base - yOf(c0)); }
-    if (c1 > 0) { ctx.strokeStyle = '#bbb'; ctx.lineWidth = 1; ctx.strokeRect(x0 + bwFull * 0.05, yOf(c1), bwDraw, base - yOf(c1)); }
+    if (c0 > 0) { ctx.strokeStyle = INK; ctx.lineWidth = 1; ctx.strokeRect(x0 + bwFull * 0.05, yOf(c0), bwDraw, base - yOf(c0)); }
+    if (c1 > 0) { ctx.strokeStyle = SERIES[1]; ctx.lineWidth = 1; ctx.strokeRect(x0 + bwFull * 0.05, yOf(c1), bwDraw, base - yOf(c1)); }
   }
   ctx.restore();
 }
@@ -729,7 +756,7 @@ function renderLine(ctx, xScale, yScale) {
     const vals = ds.map(d => d.v).sort((a, b) => a - b);
     axisY = { min: 0, max: 1, log: false, lo: 0, hi: 1, label: 'Cumulative fraction' };
     renderAxes(ctx, xScale, yScale);
-    ctx.strokeStyle = '#000'; ctx.lineWidth = 1.5; ctx.beginPath();
+    ctx.strokeStyle = INK; ctx.lineWidth = 1.5; ctx.beginPath();
     // 标准阶梯 ECDF: moveTo(vals[0], 0) → 对每个 i: 垂直跳变 lineTo(vals[i], frac_i),
     // 再对 i<n-1: 水平延伸 lineTo(vals[i+1], frac_i); 最后 lineTo(vals[n-1], 1)
     ctx.moveTo(xScale(vals[0]), yScale(0));
@@ -744,7 +771,7 @@ function renderLine(ctx, xScale, yScale) {
     const pts = ds.map(d => ({ x: d.v, y: getParam(d.c, cfg.y) }))
                   .filter(p => p.y != null && isFinite(p.y))
                   .sort((a, b) => a.x - b.x);
-    ctx.strokeStyle = '#000'; ctx.lineWidth = 1.5; ctx.beginPath();
+    ctx.strokeStyle = INK; ctx.lineWidth = 1.5; ctx.beginPath();
     pts.forEach((p, i) => {
       const X = xScale(p.x), Y = yScale(p.y);
       if (i === 0) ctx.moveTo(X, Y); else ctx.lineTo(X, Y);
@@ -758,9 +785,9 @@ function renderLine(ctx, xScale, yScale) {
     const lo = Math.min(...pts.map(p => p.x)), hi = Math.max(...pts.map(p => p.x));
     const bins = Math.max(1, cfg.bins), bw = (hi - lo) / bins || 1;
     const bwPx = plotRect.w / bins;
-    ctx.fillStyle = 'rgba(0,0,0,0.15)';
+    ctx.fillStyle = TREND_FILL;
     let started = false;
-    ctx.strokeStyle = '#000'; ctx.lineWidth = 1.5; ctx.beginPath();
+    ctx.strokeStyle = INK; ctx.lineWidth = 1.5; ctx.beginPath();
     for (let b = 0; b < bins; b++) {
       const bv = pts.filter(p => p.x >= lo + b * bw && p.x < lo + (b + 1) * bw);
       if (!bv.length) continue;
@@ -802,7 +829,7 @@ function renderHeat(ctx, xScale, yScale) {
     if (!c) continue;
     const t = cfg.heatLog ? Math.log10(c) / Math.log10(maxC) : c / maxC;
     if (cfg.colorMode) { ctx.fillStyle = viridis(t); ctx.globalAlpha = 0.85; }
-    else { ctx.fillStyle = '#000'; ctx.globalAlpha = 0.06 + 0.94 * t; }
+    else { ctx.fillStyle = INK; ctx.globalAlpha = 0.08 + 0.9 * t; }
     const x0 = xScale(xlo + i * bw);
     const y0 = yScale(ylo + (j + 1) * bh), y1 = yScale(ylo + j * bh);
     ctx.fillRect(x0, y0, cw + 0.5, y1 - y0);
@@ -853,7 +880,7 @@ function renderLegend(ctx) {
   const bw = tw + sw + pad * 3, bh = rows.length * rh + pad;
   const off = cfg.colorMode ? 40 : 8;                       // colorbar 在右缘, 图例让位
   const bx = x + w - bw - off, by = y + 8;
-  ctx.fillStyle = '#fff';
+  ctx.fillStyle = PAPER;
   ctx.fillRect(bx, by, bw, bh);
   ctx.strokeStyle = INK;
   ctx.strokeRect(bx + 0.5, by + 0.5, bw - 1, bh - 1);
@@ -930,7 +957,7 @@ function svgEmit() {
   const push = s => S.push(s);
 
   push('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + W + ' ' + H + '" width="' + W + '" height="' + H + '">');
-  push('<rect x="0" y="0" width="' + W + '" height="' + H + '" fill="#ffffff"/>');
+  push('<rect x="0" y="0" width="' + W + '" height="' + H + '" fill="' + PAPER + '"/>');
 
   // ---- 轴: 四边框 + 主/次刻度 + 刻度标签 + 轴标题(与 renderAxes 同几何) ----
   const { x, y, w, h } = plotRect;
@@ -1043,7 +1070,7 @@ function svgEmit() {
             const mean = bv.reduce((s, p) => s + p.y, 0) / bv.length;
             const sd = Math.sqrt(bv.reduce((s, p) => s + (p.y - mean) ** 2, 0) / bv.length);
             const X = xScaleAt(lo + (b + 0.5) * bw);
-            push('<rect x="' + r2(X - bwPx / 2) + '" y="' + r2(yScaleAt(mean + sd)) + '" width="' + r2(bwPx) + '" height="' + r2(yScaleAt(mean - sd) - yScaleAt(mean + sd)) + '" fill="#000000" fill-opacity="0.15"/>');
+            push('<rect x="' + r2(X - bwPx / 2) + '" y="' + r2(yScaleAt(mean + sd)) + '" width="' + r2(bwPx) + '" height="' + r2(yScaleAt(mean - sd) - yScaleAt(mean + sd)) + '" fill=\"' + TREND_SVG.fill + '\" fill-opacity=\"' + TREND_SVG.opacity + '\"/>');
             means.push([X, yScaleAt(mean)]);
           }
           if (means.length) poly(means);
@@ -1076,7 +1103,7 @@ function svgEmit() {
         const t = cfg.heatLog ? Math.log10(c) / Math.log10(maxC) : c / maxC;
         const x0 = xScaleAt(xlo + i * bw);
         const y0 = yScaleAt(ylo + (j + 1) * bh), y1 = yScaleAt(ylo + j * bh);
-        push('<rect x="' + r2(x0) + '" y="' + r2(y0) + '" width="' + r2(cw + 0.5) + '" height="' + r2(y1 - y0) + '" fill="' + (cfg.colorMode ? viridis(t) : '#000000') + '" fill-opacity="' + (cfg.colorMode ? '0.85' : (0.06 + 0.94 * t).toFixed(3)) + '"/>');
+        push('<rect x="' + r2(x0) + '" y="' + r2(y0) + '" width="' + r2(cw + 0.5) + '" height="' + r2(y1 - y0) + '" fill="' + (cfg.colorMode ? viridis(t) : INK) + '" fill-opacity="' + (cfg.colorMode ? '0.85' : (0.06 + 0.94 * t).toFixed(3)) + '"/>');
       }
     }
   }
@@ -1436,6 +1463,12 @@ function exportSVG() {
 
 // ================= INIT =================
 function init() {
+  // 主题: localStorage 记忆, 默认暗; 同步 body dataset 与按钮图标
+  try { theme = (localStorage.getItem('plotter-theme') === 'light') ? 'light' : 'dark'; } catch (e) {}
+  applyTheme();
+  if (document.body) document.body.dataset.theme = theme;
+  const tbtn = $('btn-theme');
+  if (tbtn) { tbtn.textContent = theme === 'dark' ? '☀' : '☾'; tbtn.addEventListener('click', () => setTheme(theme === 'dark' ? 'light' : 'dark')); }
   fillParamSelects();
   wireSelection();
   wireCfgControls();
