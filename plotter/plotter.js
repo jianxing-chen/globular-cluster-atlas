@@ -375,6 +375,7 @@ function niceTicks(min, max, nTicks) {
 // 对数轴刻度: 主刻度 10^n, 次刻度 2..9 × 10^k
 function logTickInfo(min, max) {
   const lo = Math.ceil(Math.log10(min)), hi = Math.floor(Math.log10(max));
+  if (!isFinite(lo) || !isFinite(hi)) return { majors: [], minors: [] };
   const majors = [];
   for (let e = lo; e <= hi; e++) majors.push(Math.pow(10, e));
   if (!majors.length) majors.push(Math.pow(10, lo));
@@ -427,8 +428,8 @@ function draw() {
   const hist = cfg.type === 'hist';
   const xr = spreadRange(paramRange(cfg.x, cfg.logX), [0, 1]);
   const yr = hist ? { min: 0, max: 1 } : spreadRange(paramRange(cfg.y, cfg.logY), [0, 1]);
-  if (cfg.logX) { xr.min = Math.pow(10, Math.floor(Math.log10(xr.min))); xr.max = Math.pow(10, Math.ceil(Math.log10(xr.max))); }
-  if (cfg.logY && !hist) { yr.min = Math.pow(10, Math.floor(Math.log10(yr.min))); yr.max = Math.pow(10, Math.ceil(Math.log10(yr.max))); }
+  if (cfg.logX) { xr.min = Math.pow(10, Math.floor(Math.log10(Math.max(xr.min, 1e-300)))); xr.max = Math.pow(10, Math.ceil(Math.log10(Math.max(xr.max, 1e-300)))); }
+  if (cfg.logY && !hist) { yr.min = Math.pow(10, Math.floor(Math.log10(Math.max(yr.min, 1e-300)))); yr.max = Math.pow(10, Math.ceil(Math.log10(Math.max(yr.max, 1e-300)))); }
   const xSpan = (xr.max - xr.min) || 1, ySpan = (yr.max - yr.min) || 1;
   // 线性轴: 刻度尺端点 = 数据范围 ±5% padding; 对数轴: 无 padding(端点 = 10 的整幂)
   axisX = { min: xr.min, max: xr.max, log: cfg.logX, label: axisLabel(cfg.x) };
