@@ -1,6 +1,6 @@
 // Milky Way Globular Cluster Atlas — Plotter (APJ-style figure workbench)
 // 经典脚本(非 module). 依赖页面先加载 ../webdata/plotter_data.js → 全局 PLOTTER_DATA.
-// 骨架阶段: 数据加载 + 参数注册表 + 静态 UI; 渲染/交互由后续任务填充(当前为 console.log stub).
+// Task 5: APJ 画布核心(坐标轴/刻度/标签/图注/图例/colorbar); 数据点渲染待 Task 6.
 (function () {
 'use strict';
 
@@ -284,16 +284,352 @@ function wireCfgControls() {
 }
 
 // ================= RENDER =================
+// APJ 风格画布核心(Task 5): 布局/刻度/轴/图注/图例/colorbar; 数据点渲染由 Task 6 填充
+// (renderScatter 等仍为桩, draw() 保持调用链完整). 灰度默认: 框/刻度/文字 #000.
 const canvas = $('plot-canvas');
 const ctx = canvas ? canvas.getContext('2d') : null;
 
-function draw() { console.log('stub: draw()'); }
+const MARGINS = { l: 64, r: 16, t: 12, b: 44 };
+const INK = '#000';
+const SERIES = ['#000', '#666', '#aaa', '#333'];        // 多系列灰度色板
+const VIRIDIS_STOPS = ['#440154', '#3b528b', '#21918c', '#5ec962', '#fde725'];
+const TICK_FONT = '12px Georgia, "Times New Roman", serif';
+const LABEL_FONT = 'italic 14px Georgia, "Times New Roman", serif';
 
-function renderAxes(ctx) { console.log('stub: renderAxes()'); }
-function renderScatter() { console.log('stub: renderScatter()'); }
-function renderHist()    { console.log('stub: renderHist()'); }
-function renderLine()    { console.log('stub: renderLine()'); }
-function renderHeat()    { console.log('stub: renderHeat()'); }
+// 当前帧状态(draw() 每次计算, 各渲染函数共享). axisX/axisY: min/max 为数据范围,
+// lo/hi 为刻度尺端点(线性 = 数据范围 ±5% padding; 对数 = 无 padding 的 10 的整幂).
+let plotRect = { x: MARGINS.l, y: MARGINS.t, w: 0, h: 0 };
+let axisX = { min: 0, max: 1, lo: 0, hi: 1, log: false, label: 'x' };
+let axisY = { min: 0, max: 1, lo: 0, hi: 1, log: false, label: 'y' };
+
+// 选中星团在参数 id 上的数据范围(posOnly: 只取正值, 供对数轴); 全缺失 → null
+function paramRange(id, posOnly) {
+  const p = PARAM_BY_ID[id];
+  if (!p) return null;
+  let min = Infinity, max = -Infinity;
+  DATA.forEach(c => {
+    if (!selected.has(c.id)) return;
+    const v = p.get(c);
+    if (v == null || !isFinite(v)) return;
+    if (posOnly && v <= 0) return;
+    if (v < min) min = v;
+    if (v > max) max = v;
+  });
+  return isFinite(min) ? { min, max } : null;
+}
+
+// 退化范围(空 → fallback; 单点 → 两边各扩 10%) 保证轴有宽度
+function spreadRange(r, fallback) {
+  if (!r) return { min: fallback[0], max: fallback[1] };
+  if (r.min === r.max) {
+    const d = Math.abs(r.min) < 1e-9 ? 0.5 : Math.abs(r.min) * 0.1;
+    return { min: r.min - d, max: r.max + d };
+  }
+  return r;
+}
+
+// 轴标签: "参数名 (单位)", 如 "Galactocentric radius R_gc (kpc)" / "Metallicity [Fe/H] (dex)"
+function axisLabel(id) {
+  const p = PARAM_BY_ID[id];
+  if (!p) return String(id);
+  return p.label + (p.unit ? ' (' + p.unit + ')' : '');
+}
+
+function hexRgb(hex) {
+  const n = parseInt(hex.slice(1), 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+
+// viridis 调色板: 锚点列表线性插值(brief 指定), t∈[0,1] → 'rgb(r,g,b)'
+function viridis(t) {
+  const c = Math.max(0, Math.min(1, t));
+  const f = c * (VIRIDIS_STOPS.length - 1);
+  const i = Math.min(VIRIDIS_STOPS.length - 2, Math.floor(f));
+  const u = f - i;
+  const a = hexRgb(VIRIDIS_STOPS[i]), b = hexRgb(VIRIDIS_STOPS[i + 1]);
+  const ch = k => Math.round(a[k] + (b[k] - a[k]) * u);
+  return 'rgb(' + ch(0) + ',' + ch(1) + ',' + ch(2) + ')';
+}
+
+// 1-2-5 序列"漂亮"刻度: step ∈ {1,2,5}×10^k, 覆盖 [min,max], 数量 ≈ nTicks
+function niceTicks(min, max, nTicks) {
+  if (nTicks == null) nTicks = 5;
+  if (!isFinite(min) || !isFinite(max)) return { ticks: [], step: 1 };
+  if (min === max) { min -= 0.5; max += 0.5; }
+  if (min > max) { const t = min; min = max; max = t; }
+  const raw = (max - min) / Math.max(1, nTicks);
+  const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  const norm = raw / mag;
+  let step;
+  if (norm < 1.5) step = 1 * mag;
+  else if (norm < 3.5) step = 2 * mag;
+  else if (norm < 7.5) step = 5 * mag;
+  else step = 10 * mag;
+  const t0 = Math.ceil(min / step) * step;
+  const n = Math.floor((max - t0) / step + 1e-9);
+  const ticks = [];
+  for (let i = 0; i <= n; i++) ticks.push(+(t0 + i * step).toPrecision(12));
+  return { ticks, step };
+}
+
+// 对数轴刻度: 主刻度 10^n, 次刻度 2..9 × 10^k
+function logTickInfo(min, max) {
+  const lo = Math.ceil(Math.log10(min)), hi = Math.floor(Math.log10(max));
+  const majors = [];
+  for (let e = lo; e <= hi; e++) majors.push(Math.pow(10, e));
+  if (!majors.length) majors.push(Math.pow(10, lo));
+  const minors = [];
+  for (let e = lo; e <= hi - 1; e++) {
+    for (let f = 2; f <= 9; f++) minors.push(f * Math.pow(10, e));
+  }
+  return { majors, minors };
+}
+
+// 归一化 t∈[0,1]: 线性带 pad(默认 5%), 对数在 log10 空间
+function linT(v, min, max, pad) {
+  const span = (max - min) || 1;
+  const lo = min - span * pad, hi = max + span * pad;
+  return (v - lo) / (hi - lo);
+}
+function logT(v, min, max) {
+  const lg = x => Math.log10(Math.max(x, 1e-300));
+  const span = (lg(max) - lg(min)) || 1;
+  return (lg(v) - lg(min)) / span;
+}
+
+// 数据值 → 像素坐标(基于当前 plotRect). 线性: linScale(v,min,max,pad=0.05);
+// 对数: logScale(v,min,max) 的 min/max 为原始(正值)数据值.
+function linScale(v, min, max, pad) {
+  if (pad == null) pad = 0.05;
+  return plotRect.x + linT(v, min, max, pad) * plotRect.w;
+}
+function logScale(v, min, max) {
+  return plotRect.x + logT(v, min, max) * plotRect.w;
+}
+
+// 刻度文字: 十进制 ≤3 位有效数字; 对数轴 → "10^n"
+function fmtTick(v, isLog) {
+  if (isLog) return '10^' + Math.round(Math.log10(v));
+  if (v === 0) return '0';
+  if (!isFinite(v)) return '—';
+  return String(+v.toPrecision(3));
+}
+
+// 主绘图入口: 清空 → 布局 → 数据范围 → 刻度尺 → 坐标轴 → 类型渲染桩 → 图例 → colorbar → 图注
+function draw() {
+  if (!ctx || !canvas) return;
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, W, H);
+  plotRect = { x: MARGINS.l, y: MARGINS.t, w: W - MARGINS.l - MARGINS.r, h: H - MARGINS.t - MARGINS.b };
+
+  const hist = cfg.type === 'hist';
+  const xr = spreadRange(paramRange(cfg.x, cfg.logX), [0, 1]);
+  const yr = hist ? { min: 0, max: 1 } : spreadRange(paramRange(cfg.y, cfg.logY), [0, 1]);
+  if (cfg.logX) { xr.min = Math.pow(10, Math.floor(Math.log10(xr.min))); xr.max = Math.pow(10, Math.ceil(Math.log10(xr.max))); }
+  if (cfg.logY && !hist) { yr.min = Math.pow(10, Math.floor(Math.log10(yr.min))); yr.max = Math.pow(10, Math.ceil(Math.log10(yr.max))); }
+  const xSpan = (xr.max - xr.min) || 1, ySpan = (yr.max - yr.min) || 1;
+  // 线性轴: 刻度尺端点 = 数据范围 ±5% padding; 对数轴: 无 padding(端点 = 10 的整幂)
+  axisX = { min: xr.min, max: xr.max, log: cfg.logX, label: axisLabel(cfg.x) };
+  axisY = { min: yr.min, max: yr.max, log: cfg.logY && !hist, label: hist ? 'N' : axisLabel(cfg.y) };
+  axisX.lo = axisX.log ? axisX.min : axisX.min - xSpan * 0.05;
+  axisX.hi = axisX.log ? axisX.max : axisX.max + xSpan * 0.05;
+  axisY.lo = axisY.log ? axisY.min : axisY.min - ySpan * 0.05;
+  axisY.hi = axisY.log ? axisY.max : axisY.max + ySpan * 0.05;
+
+  const xScale = v => axisX.log ? logScale(v, axisX.min, axisX.max) : linScale(v, axisX.min, axisX.max);
+  const yScale = v => {
+    const t = axisY.log ? logT(v, axisY.min, axisY.max) : linT(v, axisY.min, axisY.max);
+    return plotRect.y + plotRect.h - t * plotRect.h;
+  };
+
+  renderAxes(ctx, xScale, yScale);
+  if (cfg.type === 'scatter') renderScatter(xScale, yScale);
+  else if (cfg.type === 'hist') renderHist(xScale, yScale);
+  else if (cfg.type === 'line') renderLine(xScale, yScale);
+  else if (cfg.type === 'heat') renderHeat(xScale, yScale);
+  renderLegend(ctx);
+  renderColorbar(ctx);
+  updateCaption();
+}
+
+// 四边黑框 + 向内主/次刻度 + 轴标签(变量斜体 Georgia serif, 含单位); 无网格线
+function renderAxes(ctx, xScale, yScale) {
+  const { x, y, w, h } = plotRect;
+  ctx.save();
+  ctx.strokeStyle = INK;
+  ctx.fillStyle = INK;
+  ctx.lineWidth = 1;
+
+  // 四边黑框(0.5 偏移保证 1px 落在像素内)
+  ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+
+  // 刻度集合: 线性 → niceTicks(刻度尺端点); 对数 → 10^n
+  const xT = axisX.log ? logTickInfo(axisX.lo, axisX.hi) : niceTicks(axisX.lo, axisX.hi);
+  const yT = axisY.log ? logTickInfo(axisY.lo, axisY.hi) : niceTicks(axisY.lo, axisY.hi);
+  const xMaj = axisX.log ? xT.majors : xT.ticks;
+  const yMaj = axisY.log ? yT.majors : yT.ticks;
+  const MAJ = 5, MIN = 3;
+
+  ctx.font = TICK_FONT;
+  // X 主刻度: 底边向内 + 顶边向内(顶无标签)
+  xMaj.forEach(t => {
+    const px = Math.round(xScale(t));
+    ctx.beginPath(); ctx.moveTo(px, y + h); ctx.lineTo(px, y + h - MAJ); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(px, y); ctx.lineTo(px, y + MAJ); ctx.stroke();
+  });
+  // X 刻度标签
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  xMaj.forEach(t => ctx.fillText(fmtTick(t, axisX.log), Math.round(xScale(t)), y + h + 7));
+
+  // Y 主刻度: 左边向内 + 右边向内(右无标签); 刻度标签右对齐
+  ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  yMaj.forEach(t => {
+    const py = Math.round(yScale(t));
+    ctx.beginPath(); ctx.moveTo(x, py); ctx.lineTo(x + MAJ, py); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x + w, py); ctx.lineTo(x + w - MAJ, py); ctx.stroke();
+    ctx.fillText(fmtTick(t, axisY.log), x - 8, py);
+  });
+
+  // 次刻度(向内, 无标签): 线性按主步长细分(步长 1/5 → 每格 4 个, 2 → 中点 1 个);
+  // 对数 → 2..9 × 10^k
+  const linFracs = step => {
+    const m = step / Math.pow(10, Math.floor(Math.log10(step) + 1e-9));
+    if (Math.abs(m - 1) < 1e-9) return [0.2, 0.4, 0.6, 0.8];
+    if (Math.abs(m - 2) < 1e-9) return [0.5];
+    return [0.2, 0.4, 0.6, 0.8];
+  };
+  const xMinorAt = (v, drawTop) => {
+    const px = Math.round(xScale(v));
+    ctx.beginPath(); ctx.moveTo(px, y + h); ctx.lineTo(px, y + h - MIN); ctx.stroke();
+    if (drawTop) { ctx.beginPath(); ctx.moveTo(px, y); ctx.lineTo(px, y + MIN); ctx.stroke(); }
+  };
+  const yMinorAt = v => {
+    const py = Math.round(yScale(v));
+    ctx.beginPath(); ctx.moveTo(x, py); ctx.lineTo(x + MIN, py); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x + w, py); ctx.lineTo(x + w - MIN, py); ctx.stroke();
+  };
+  if (axisX.log) {
+    xT.minors.forEach(v => xMinorAt(v, true));
+  } else {
+    xT.ticks.forEach(t => linFracs(xT.step).forEach(f => {
+      const v = t + f * xT.step;
+      if (v <= axisX.hi + 1e-9 && v >= axisX.lo - 1e-9) xMinorAt(v, true);
+    }));
+  }
+  if (axisY.log) {
+    yT.minors.forEach(v => yMinorAt(v));
+  } else {
+    yT.ticks.forEach(t => linFracs(yT.step).forEach(f => {
+      const v = t + f * yT.step;
+      if (v <= axisY.hi + 1e-9 && v >= axisY.lo - 1e-9) yMinorAt(v);
+    }));
+  }
+
+  // 轴标题: 变量斜体 Georgia serif, 含单位; X 居中于底边下方, Y 旋转 -90° 居中于左边
+  ctx.font = LABEL_FONT;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  ctx.fillText(axisX.label, x + w / 2, y + h + 30);
+  ctx.save();
+  ctx.translate(x - 44, y + h / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  ctx.fillText(axisY.label, 0, 0);
+  ctx.restore();
+
+  ctx.restore();
+}
+
+// 类型渲染桩(Task 6 实现); 保持调用链与坐标尺签名
+function renderScatter(xScale, yScale) { console.log('stub: renderScatter()'); }
+function renderHist(xScale, yScale)    { console.log('stub: renderHist()'); }
+function renderLine(xScale, yScale)    { console.log('stub: renderLine()'); }
+function renderHeat(xScale, yScale)    { console.log('stub: renderHeat()'); }
+
+// 图注: "Fig. <#fig-no>.— <描述>. Selected N clusters; missing M values skipped."
+// #fig-no 与 #caption-input 均可编辑; 每次 draw() 重生成.
+function updateCaption() {
+  const capEl = $('caption-input');
+  if (!capEl) return;
+  const figEl = $('fig-no');
+  const figNo = (figEl && figEl.value) ? figEl.value : '1';
+  const need = cfg.type === 'hist' ? [cfg.x] : [cfg.x, cfg.y];
+  let missing = 0;
+  DATA.forEach(c => {
+    if (!selected.has(c.id)) return;
+    if (need.some(id => PARAM_BY_ID[id].get(c) == null)) missing++;
+  });
+  const desc = cfg.type === 'hist'
+    ? 'Distribution of ' + axisLabel(cfg.x)
+    : axisLabel(cfg.x) + ' vs ' + axisLabel(cfg.y);
+  capEl.value = 'Fig. ' + figNo + '.— ' + desc + '. Selected ' + selected.size +
+    ' clusters; missing ' + missing + ' values skipped.';
+}
+
+// 图例: 仅多组(overlay ≠ none)或 colorMode 时, 右上角(plot rect 内)黑框 + 色块 + 文字
+function renderLegend(ctx) {
+  const multi = cfg.overlay !== 'none' || cfg.colorMode;
+  if (!multi) return;
+  const { x, y, w, h } = plotRect;
+  const rows = [];
+  if (cfg.overlay !== 'none') {
+    const NAMES = { disc: 'Disc (Rgc<8)', halo: 'Halo (Rgc≥8)', rich: 'Metal-rich', poor: 'Metal-poor' };
+    rows.push({ label: NAMES[cfg.overlay] || cfg.overlay, swatch: SERIES[1] });
+  }
+  if (cfg.colorMode) rows.push({ label: 'Color: ' + axisLabel(cfg.colorParam), swatch: 'gradient' });
+  ctx.save();
+  ctx.font = TICK_FONT;
+  const pad = 8, rh = 16, sw = 12;
+  let tw = 0;
+  rows.forEach(r => { tw = Math.max(tw, ctx.measureText(r.label).width); });
+  const bw = tw + sw + pad * 3, bh = rows.length * rh + pad;
+  const off = cfg.colorMode ? 40 : 8;                       // colorbar 在右缘, 图例让位
+  const bx = x + w - bw - off, by = y + 8;
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(bx, by, bw, bh);
+  ctx.strokeStyle = INK;
+  ctx.strokeRect(bx + 0.5, by + 0.5, bw - 1, bh - 1);
+  rows.forEach((r, i) => {
+    const ry = by + pad / 2 + i * rh;
+    if (r.swatch === 'gradient') {
+      for (let k = 0; k < sw; k++) {
+        ctx.fillStyle = viridis(k / Math.max(1, sw - 1));
+        ctx.fillRect(bx + pad, ry + 2, 1, 10);
+      }
+    } else {
+      ctx.fillStyle = r.swatch;
+      ctx.fillRect(bx + pad, ry + 2, sw, 10);
+    }
+    ctx.fillStyle = INK;
+    ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    ctx.fillText(r.label, bx + pad + sw + 6, ry + 7);
+  });
+  ctx.restore();
+}
+
+// Colorbar: 仅 colorMode; plot rect 右缘内侧竖直渐变条(viridis, 下=min 上=max) + 两端 fmtTick 标签
+function renderColorbar(ctx) {
+  if (!cfg.colorMode) return;
+  const r = paramRange(cfg.colorParam);
+  if (!r) return;
+  const { x, y, w, h } = plotRect;
+  const cw = 12, gap = 8, inset = 6;
+  const cx = x + w - cw - gap, cy = y + inset, ch = h - inset * 2;
+  for (let i = 0; i < ch; i++) {
+    ctx.fillStyle = viridis(1 - i / Math.max(1, ch - 1));
+    ctx.fillRect(cx, cy + i, cw, 1);
+  }
+  ctx.strokeStyle = INK;
+  ctx.strokeRect(cx + 0.5, cy + 0.5, cw - 1, ch - 1);
+  ctx.fillStyle = INK;
+  ctx.font = TICK_FONT;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'bottom';
+  ctx.fillText(fmtTick(r.max, false), cx + cw / 2, cy - 3);
+  ctx.textBaseline = 'top';
+  ctx.fillText(fmtTick(r.min, false), cx + cw / 2, cy + ch + 4);
+}
 
 // ================= SVG =================
 function svgEmit() { console.log('stub: svgEmit()'); }
@@ -346,12 +682,20 @@ init();
 // ================= TEST SURFACE =================
 // 无头测试钩子(Task 3/4): 把选择 API + 配置状态暴露到 window, 供页面上下文断言
 // (brief 测试片段直接调用 selCount()/batchSelect()/presetApply()/selected, 以及
-// cfg/setCfg/TEMPLATES). cfg 按引用暴露, 与闭包状态永远同步.
+// cfg/setCfg/TEMPLATES). cfg 按引用暴露, 与闭包状态永远同步. Task 5 起新增
+// 渲染核心钩子: niceTicks/fmtTick/linScale/logScale/viridis/draw/getPlotState.
 Object.assign(window, {
   selected, selCount, applySelection,
   selectAll, clearSel, invertSel, batchSelect,
   PRESETS, presetApply, renderList, matchDisplay,
   cfg, setCfg, TEMPLATES, syncCfgControls,
+  niceTicks, fmtTick, linScale, logScale, viridis,
+  draw, renderAxes,
+  getPlotState: () => ({
+    plotRect: { ...plotRect },
+    axisX: { ...axisX },
+    axisY: { ...axisY },
+  }),
 });
 
 })();
