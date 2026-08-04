@@ -267,6 +267,34 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;
       <input type="range" id="r-rgc" min="1" max="130" step="1" value="130">
     </div>
     <div class="f-group">
+      <div class="f-label">Mass (×10⁵ M☉) <output id="o-mass">all</output></div>
+      <div class="dual-range">
+        <div class="dual-track" id="trk-mass"></div>
+        <input type="range" id="r-mass-lo" min="0" max="35" step="0.5" value="0">
+        <input type="range" id="r-mass-hi" min="0" max="35" step="0.5" value="35">
+      </div>
+    </div>
+    <div class="f-group">
+      <div class="f-label">Velocity dispersion σ₀ <output id="o-sig">all</output></div>
+      <div class="dual-range">
+        <div class="dual-track" id="trk-sig"></div>
+        <input type="range" id="r-sig-lo" min="0" max="25" step="0.5" value="0">
+        <input type="range" id="r-sig-hi" min="0" max="25" step="0.5" value="25">
+      </div>
+    </div>
+    <div class="f-group">
+      <div class="f-label">Reddening E(B−V) <output id="o-ebv">all</output></div>
+      <div class="dual-range">
+        <div class="dual-track" id="trk-ebv"></div>
+        <input type="range" id="r-ebv-lo" min="0" max="2.0" step="0.05" value="0">
+        <input type="range" id="r-ebv-hi" min="0" max="2.0" step="0.05" value="2.0">
+      </div>
+    </div>
+    <div class="f-group">
+      <div class="f-label">Half-light radius <output id="o-rh">≤ 5</output></div>
+      <input type="range" id="r-rh" min="0.2" max="5" step="0.1" value="5">
+    </div>
+    <div class="f-group">
       <div class="f-label">Luminosity (M_V) <output id="o-mv">all</output></div>
       <div class="dual-range">
         <div class="dual-track" id="trk-mv"></div>
