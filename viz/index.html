@@ -263,8 +263,12 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;
       </div>
     </div>
     <div class="f-group">
-      <div class="f-label">Galactocentric R <output id="o-rgc">≤ 130</output></div>
-      <input type="range" id="r-rgc" min="1" max="130" step="1" value="130">
+      <div class="f-label">Galactocentric R (kpc) <output id="o-rgc">all</output></div>
+      <div class="dual-range">
+        <div class="dual-track" id="trk-rgc"></div>
+        <input type="range" id="r-rgc-lo" min="0" max="130" step="1" value="0">
+        <input type="range" id="r-rgc-hi" min="0" max="130" step="1" value="130">
+      </div>
     </div>
     <div class="f-group">
       <div class="f-label">Mass (×10⁵ M☉) <output id="o-mass">all</output></div>
@@ -291,8 +295,12 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;
       </div>
     </div>
     <div class="f-group">
-      <div class="f-label">Half-light radius <output id="o-rh">≤ 5</output></div>
-      <input type="range" id="r-rh" min="0.2" max="5" step="0.1" value="5">
+      <div class="f-label">Half-light radius (arcmin) <output id="o-rh">all</output></div>
+      <div class="dual-range">
+        <div class="dual-track" id="trk-rh"></div>
+        <input type="range" id="r-rh-lo" min="0.2" max="5" step="0.1" value="0.2">
+        <input type="range" id="r-rh-hi" min="0.2" max="5" step="0.1" value="5">
+      </div>
     </div>
     <div class="f-group">
       <div class="f-label">Luminosity (M_V) <output id="o-mv">all</output></div>

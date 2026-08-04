@@ -765,21 +765,22 @@ renderer.domElement.addEventListener('pointermove', e => {
 
 // ---------- filters ----------
 const visArr = vis;
-let F = { fehLo: -2.6, fehHi: 0.3, rgc: 130, mvLo: -11, mvHi: -3,
-          massLo: 0, massHi: 35, sigLo: 0, sigHi: 25, ebvLo: 0, ebvHi: 2.0, rh: 5 };
+let F = { fehLo: -2.6, fehHi: 0.3, rgcLo: 0, rgcHi: 130, mvLo: -11, mvHi: -3,
+          massLo: 0, massHi: 35, sigLo: 0, sigHi: 25, ebvLo: 0, ebvHi: 2.0,
+          rhLo: 0.2, rhHi: 5 };
 function applyFilters() {
   let n = 0;
   for (let i = 0; i < N; i++) {
     const c = CL[i];
     let ok = true;
     if (c.feh != null && (c.feh < F.fehLo || c.feh > F.fehHi)) ok = false;
-    if (c.rgc != null && c.rgc > F.rgc) ok = false;
+    if (c.rgc != null && (c.rgc < F.rgcLo || c.rgc > F.rgcHi)) ok = false;
     if (c.MV != null && (c.MV < F.mvLo || c.MV > F.mvHi)) ok = false;
     // 质量(以 1e5 M☉ 计, 滑块值)
     if (c.mass != null && (c.mass/1e5 < F.massLo || c.mass/1e5 > F.massHi)) ok = false;
     if (c.sigma0 != null && (c.sigma0 < F.sigLo || c.sigma0 > F.sigHi)) ok = false;
     if (c.ebv != null && (c.ebv < F.ebvLo || c.ebv > F.ebvHi)) ok = false;
-    if (c.rh != null && c.rh > F.rh) ok = false;   // 半光半径(arcmin)上限
+    if (c.rh != null && (c.rh < F.rhLo || c.rh > F.rhHi)) ok = false;   // 半光半径(arcmin)
     if (c.x == null) ok = false;
     visArr[i] = ok ? 1 : 0; if (ok) n++;
   }
@@ -831,13 +832,14 @@ function bindDualRange(loId, hiId, min, max, key, fillId) {
 }
 function updDual(key, updateFill) {
   updateFill();
-  const full = { feh: [-2.6, 0.3], mv: [-11, -3], mass: [0, 35], sig: [0, 25], ebv: [0, 2.0] }[key];
+  const full = { feh: [-2.6, 0.3], mv: [-11, -3], mass: [0, 35], sig: [0, 25],
+                 ebv: [0, 2.0], rgc: [0, 130], rh: [0.2, 5] }[key];
   if (!full) { applyFilters(); return; }
   const lo = F[key+'Lo'], hi = F[key+'Hi'];
   const isAll = lo <= full[0] && hi >= full[1];
-  const fmt = key === 'mass' ? v => v.toFixed(1) : v => v.toFixed(1);  // 滑块值 = ×10⁵ M☉
-  const outId = { feh: 'o-feh', mv: 'o-mv', mass: 'o-mass', sig: 'o-sig', ebv: 'o-ebv' }[key];
-  $(outId).textContent = isAll ? 'all' : `${fmt(lo)}…${fmt(hi)}`;
+  const outId = { feh: 'o-feh', mv: 'o-mv', mass: 'o-mass', sig: 'o-sig',
+                  ebv: 'o-ebv', rgc: 'o-rgc', rh: 'o-rh' }[key];
+  $(outId).textContent = isAll ? 'all' : `${lo.toFixed(lo < 10 && key !== 'rh' ? 1 : 1)}…${hi.toFixed(1)}`;
   applyFilters();
 }
 const fehDual = bindDualRange('r-feh-lo', 'r-feh-hi', -2.6, 0.3, 'feh', 'trk-feh');
@@ -845,9 +847,10 @@ const mvDual  = bindDualRange('r-mv-lo', 'r-mv-hi', -11, -3, 'mv', 'trk-mv');
 const massDual = bindDualRange('r-mass-lo', 'r-mass-hi', 0, 35, 'mass', 'trk-mass');
 const sigDual  = bindDualRange('r-sig-lo', 'r-sig-hi', 0, 25, 'sig', 'trk-sig');
 const ebvDual  = bindDualRange('r-ebv-lo', 'r-ebv-hi', 0, 2.0, 'ebv', 'trk-ebv');
-fehDual.updateFill(); mvDual.updateFill(); massDual.updateFill(); sigDual.updateFill(); ebvDual.updateFill();
-$('r-rgc').oninput = e => { F.rgc = +e.target.value; $('o-rgc').textContent = '≤ ' + F.rgc; applyFilters(); };
-$('r-rh').oninput = e => { F.rh = +e.target.value; $('o-rh').textContent = '≤ ' + F.rh; applyFilters(); };
+const rgcDual  = bindDualRange('r-rgc-lo', 'r-rgc-hi', 0, 130, 'rgc', 'trk-rgc');
+const rhDual   = bindDualRange('r-rh-lo', 'r-rh-hi', 0.2, 5, 'rh', 'trk-rh');
+fehDual.updateFill(); mvDual.updateFill(); massDual.updateFill(); sigDual.updateFill();
+ebvDual.updateFill(); rgcDual.updateFill(); rhDual.updateFill();
 $('t-orbit').onchange = e => { orbitGroup.visible = e.target.checked; };
 $('t-arms').onchange = e => { armsGroup.visible = barGroup.visible = e.target.checked; };
 $('t-streams').onchange = e => { streamsGroup.visible = e.target.checked;
@@ -923,18 +926,21 @@ function resetAll() {
   [...$('seg-size').children].forEach(x => x.classList.toggle('on', x.dataset.v === 'mv'));
   computeSizes();
   // 4. 筛选回默认
-  F = { fehLo: -2.6, fehHi: 0.3, rgc: 130, mvLo: -11, mvHi: -3,
-        massLo: 0, massHi: 35, sigLo: 0, sigHi: 25, ebvLo: 0, ebvHi: 2.0, rh: 5 };
+  F = { fehLo: -2.6, fehHi: 0.3, rgcLo: 0, rgcHi: 130, mvLo: -11, mvHi: -3,
+        massLo: 0, massHi: 35, sigLo: 0, sigHi: 25, ebvLo: 0, ebvHi: 2.0,
+        rhLo: 0.2, rhHi: 5 };
   $('r-feh-lo').value = -2.6; $('r-feh-hi').value = 0.3;
   $('r-mv-lo').value = -11; $('r-mv-hi').value = -3;
   $('r-mass-lo').value = 0; $('r-mass-hi').value = 35;
   $('r-sig-lo').value = 0; $('r-sig-hi').value = 25;
   $('r-ebv-lo').value = 0; $('r-ebv-hi').value = 2.0;
-  $('r-rgc').value = 130; $('r-rh').value = 5;
-  $('o-feh').textContent = 'all'; $('o-rgc').textContent = '≤ 130'; $('o-mv').textContent = 'all';
+  $('r-rgc-lo').value = 0; $('r-rgc-hi').value = 130;
+  $('r-rh-lo').value = 0.2; $('r-rh-hi').value = 5;
+  $('o-feh').textContent = 'all'; $('o-rgc').textContent = 'all'; $('o-mv').textContent = 'all';
   $('o-mass').textContent = 'all'; $('o-sig').textContent = 'all';
-  $('o-ebv').textContent = 'all'; $('o-rh').textContent = '≤ 5';
-  fehDual.updateFill(); mvDual.updateFill(); massDual.updateFill(); sigDual.updateFill(); ebvDual.updateFill();
+  $('o-ebv').textContent = 'all'; $('o-rh').textContent = 'all';
+  fehDual.updateFill(); mvDual.updateFill(); massDual.updateFill(); sigDual.updateFill();
+  ebvDual.updateFill(); rgcDual.updateFill(); rhDual.updateFill();
   applyFilters();
   // 5. 开关回默认
   const defs = { 't-orbit': false, 't-streams': false, 't-arms': true,
