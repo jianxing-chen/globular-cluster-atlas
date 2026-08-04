@@ -114,8 +114,8 @@ function buildArms() {
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
     g.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3));
-    const m = new THREE.PointsMaterial({ size: 0.8, map: tex, vertexColors: true,
-      transparent: true, opacity: 0.4, depthWrite: false,
+    const m = new THREE.PointsMaterial({ size: 0.7, map: tex, vertexColors: true,
+      transparent: true, opacity: 0.28, depthWrite: false,
       blending: THREE.AdditiveBlending, sizeAttenuation: true });
     armsGroup.add(new THREE.Points(g, m));
   });
@@ -133,8 +133,8 @@ function buildArms() {
   const hg = new THREE.BufferGeometry();
   hg.setAttribute('position', new THREE.Float32BufferAttribute(hpos, 3));
   hg.setAttribute('color', new THREE.Float32BufferAttribute(hcol, 3));
-  armsGroup.add(new THREE.Points(hg, new THREE.PointsMaterial({ size: 1.6, map: tex,
-    vertexColors: true, transparent: true, opacity: 0.6, depthWrite: false,
+  armsGroup.add(new THREE.Points(hg, new THREE.PointsMaterial({ size: 1.4, map: tex,
+    vertexColors: true, transparent: true, opacity: 0.5, depthWrite: false,
     blending: THREE.AdditiveBlending })));
 }
 buildArms();
@@ -162,8 +162,8 @@ function buildBar() {
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
   g.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3));
-  barGroup.add(new THREE.Points(g, new THREE.PointsMaterial({ size: 1.2, map: tex,
-    vertexColors: true, transparent: true, opacity: 0.5, depthWrite: false,
+  barGroup.add(new THREE.Points(g, new THREE.PointsMaterial({ size: 1.1, map: tex,
+    vertexColors: true, transparent: true, opacity: 0.38, depthWrite: false,
     blending: THREE.AdditiveBlending })));
   // 核球(bulge): 半径~2kpc 椭球暖光
   const bp = [], bc = [];
@@ -179,8 +179,8 @@ function buildBar() {
   const bg = new THREE.BufferGeometry();
   bg.setAttribute('position', new THREE.Float32BufferAttribute(bp, 3));
   bg.setAttribute('color', new THREE.Float32BufferAttribute(bc, 3));
-  barGroup.add(new THREE.Points(bg, new THREE.PointsMaterial({ size: 1.1, map: tex,
-    vertexColors: true, transparent: true, opacity: 0.42, depthWrite: false,
+  barGroup.add(new THREE.Points(bg, new THREE.PointsMaterial({ size: 0.95, map: tex,
+    vertexColors: true, transparent: true, opacity: 0.3, depthWrite: false,
     blending: THREE.AdditiveBlending })));
 }
 buildBar();
@@ -340,7 +340,7 @@ CL.forEach((c, i) => {
   const v = V(c.x || 0, c.y || 0, c.z || 0);
   pos[i*3] = v.x; pos[i*3+1] = v.y; pos[i*3+2] = v.z;
   const m = c.MV == null ? -6 : c.MV;
-  siz[i] = 2.4 + Math.max(0, (-m - 3)) * 1.05;   // brighter -> bigger (克制的尺寸)
+  siz[i] = 2.9 + Math.max(0, (-m - 3)) * 1.25;   // brighter -> bigger
   vis[i] = 1;
 });
 const geo = new THREE.BufferGeometry();
