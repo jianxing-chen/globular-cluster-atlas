@@ -20,6 +20,11 @@ const dispOf = c => { const a = aliasOf(c); return a === mainName(c) ? mainName(
 // const v = c[param.id]; return v==null ? null : v; —— 无轨道星团缺少
 // ecc/rperi/rapo/zmax 等平铺字段, 返回 null(渲染时跳过, 绝不 NaN 上屏).
 function getParam(c, id) { const v = c[id]; return v == null ? null : v; }
+// 按参数 id 取值(经 PARAM_BY_ID 映射: 如 'mv' -> 字段 'MV'), 供 cfg.x/y/colorParam/sizeParam 使用
+function valOf(c, id) {
+  const p = PARAM_BY_ID[id];
+  return p ? p.get(c) : null;
+}
 function fmtNum(v) {
   if (v == null) return '—';
   const n = Number(v);
@@ -199,11 +204,19 @@ let cfg = {
 
 // 参数下拉框由注册表填充(单一来源, 标签与 PARAMS 一致)
 function fillParamSelects() {
-  [['x-param', cfg.x], ['y-param', cfg.y], ['color-param', cfg.colorParam], ['size-param', cfg.sizeParam]]
-    .forEach(([id, def]) => {
+  [['x-param', cfg.x, false], ['y-param', cfg.y, false],
+   ['color-param', cfg.colorParam, true], ['size-param', cfg.sizeParam, true]]
+    .forEach(([id, def, allowNone]) => {
       const sel = $(id);
       if (!sel) return;
       sel.textContent = '';
+      if (allowNone) {
+        const opt = document.createElement('option');
+        opt.value = '';
+        opt.textContent = '— None —';
+        opt.selected = (def === '' || def == null);
+        sel.appendChild(opt);
+      }
       PARAMS.forEach(p => {
         const opt = document.createElement('option');
         opt.value = p.id;
@@ -640,9 +653,9 @@ function norm01(v, min, max) {
 
 // 点色: colorMode → viridis(colorParam 归一化); 否则灰度 SERIES[组]
 function pointColor(c) {
-  if (cfg.colorMode) {
+  if (cfg.colorMode && cfg.colorParam) {
     const r = paramRange(cfg.colorParam, false);
-    const v = getParam(c, cfg.colorParam);
+    const v = valOf(c, cfg.colorParam);
     if (r && v != null) return viridis(norm01(v, r.min, r.max));
     return DIM;
   }
@@ -652,10 +665,11 @@ function pointColor(c) {
 
 // 点大小: sizeParam 归一化到 2.5-7 px
 function pointRadius(c) {
+  if (!cfg.sizeParam) return 5;
   const r = paramRange(cfg.sizeParam, false);
-  const v = getParam(c, cfg.sizeParam);
-  if (!r || v == null) return 4.5;
-  return 2.5 + 4.5 * norm01(v, r.min, r.max);
+  const v = valOf(c, cfg.sizeParam);
+  if (!r || v == null) return 5;
+  return 3 + 10 * norm01(v, r.min, r.max);   // 3-13 px, 差异更明显
 }
 
 // 示意性误差棒幅度(数据源无误差列; 图注标注 illustrative)
@@ -671,13 +685,13 @@ function errOf(paramId) {
 // ctx 参数 = 目标上下文(draw 传主画布或 3× 离屏导出上下文); 函数体直接用该参数
 function renderScatter(ctx, xScale, yScale) {
   const pts = dataFor(cfg.x).filter(d => {
-    const yv = getParam(d.c, cfg.y);
+    const yv = valOf(d.c, cfg.y);
     return yv != null && isFinite(yv);
   });
   const e = cfg.errBars ? errOf(cfg.y) : null;
   ctx.save();
   pts.forEach(d => {
-    const c = d.c, yv = getParam(c, cfg.y);
+    const c = d.c, yv = valOf(c, cfg.y);
     const x = xScale(d.v), y = yScale(yv);
     const g = groupOf(c), col = pointColor(c);
     if (e) {
@@ -768,7 +782,7 @@ function renderLine(ctx, xScale, yScale) {
     ctx.stroke();
   } else if (mode === 'sorted') {
     // 按 X 排序连线
-    const pts = ds.map(d => ({ x: d.v, y: getParam(d.c, cfg.y) }))
+    const pts = ds.map(d => ({ x: d.v, y: valOf(d.c, cfg.y) }))
                   .filter(p => p.y != null && isFinite(p.y))
                   .sort((a, b) => a.x - b.x);
     ctx.strokeStyle = INK; ctx.lineWidth = 1.5; ctx.beginPath();
@@ -779,7 +793,7 @@ function renderLine(ctx, xScale, yScale) {
     ctx.stroke();
   } else {
     // trend: cfg.bins 个 bin 的均值 ±1σ 阴影带 + 均值连线
-    const pts = ds.map(d => ({ x: d.v, y: getParam(d.c, cfg.y) }))
+    const pts = ds.map(d => ({ x: d.v, y: valOf(d.c, cfg.y) }))
                   .filter(p => p.y != null && isFinite(p.y));
     if (!pts.length) { ctx.restore(); return; }
     const lo = Math.min(...pts.map(p => p.x)), hi = Math.max(...pts.map(p => p.x));
@@ -805,11 +819,11 @@ function renderLine(ctx, xScale, yScale) {
 
 function renderHeat(ctx, xScale, yScale) {
   const ds = dataFor(cfg.x).filter(d => {
-    const yv = getParam(d.c, cfg.y);
+    const yv = valOf(d.c, cfg.y);
     return yv != null && isFinite(yv);
   });
   if (!ds.length) return;
-  const xs = ds.map(d => d.v), ys = ds.map(d => getParam(d.c, cfg.y));
+  const xs = ds.map(d => d.v), ys = ds.map(d => valOf(d.c, cfg.y));
   const xlo = Math.min(...xs), xhi = Math.max(...xs);
   const ylo = Math.min(...ys), yhi = Math.max(...ys);
   const nb = Math.max(2, cfg.heatBins);
@@ -817,7 +831,7 @@ function renderHeat(ctx, xScale, yScale) {
   const counts = Array.from({ length: nb }, () => Array(nb).fill(0));
   ds.forEach(d => {
     let bx = Math.floor((d.v - xlo) / bw); if (bx >= nb) bx = nb - 1; if (bx < 0) bx = 0;
-    const yv = getParam(d.c, cfg.y);
+    const yv = valOf(d.c, cfg.y);
     let by = Math.floor((yv - ylo) / bh); if (by >= nb) by = nb - 1; if (by < 0) by = 0;
     counts[bx][by]++;
   });
@@ -863,7 +877,8 @@ function updateCaption() {
 
 // 图例: 仅多组(overlay ≠ none)或 colorMode 时, 右上角(plot rect 内)黑框 + 色块 + 文字
 function renderLegend(ctx) {
-  const multi = cfg.overlay !== 'none' || cfg.colorMode;
+  const colorActive = cfg.colorMode && !!cfg.colorParam;
+  const multi = cfg.overlay !== 'none' || colorActive;
   if (!multi) return;
   const { x, y, w, h } = plotRect;
   const rows = [];
@@ -871,14 +886,14 @@ function renderLegend(ctx) {
     const NAMES = { disc: 'Disc (Rgc<8)', halo: 'Halo (Rgc≥8)', rich: 'Metal-rich', poor: 'Metal-poor' };
     rows.push({ label: NAMES[cfg.overlay] || cfg.overlay, swatch: SERIES[1] });
   }
-  if (cfg.colorMode) rows.push({ label: 'Color: ' + axisLabel(cfg.colorParam), swatch: 'gradient' });
+  if (colorActive) rows.push({ label: 'Color: ' + axisLabel(cfg.colorParam), swatch: 'gradient' });
   ctx.save();
   ctx.font = TICK_FONT;
   const pad = 8, rh = 16, sw = 12;
   let tw = 0;
   rows.forEach(r => { tw = Math.max(tw, ctx.measureText(r.label).width); });
   const bw = tw + sw + pad * 3, bh = rows.length * rh + pad;
-  const off = cfg.colorMode ? 40 : 8;                       // colorbar 在右缘, 图例让位
+  const off = colorActive ? 40 : 8;                        // colorbar 在右缘, 图例让位
   const bx = x + w - bw - off, by = y + 8;
   ctx.fillStyle = PAPER;
   ctx.fillRect(bx, by, bw, bh);
@@ -904,7 +919,7 @@ function renderLegend(ctx) {
 
 // Colorbar: 仅 colorMode; plot rect 右缘内侧竖直渐变条(viridis, 下=min 上=max) + 两端 fmtTick 标签
 function renderColorbar(ctx) {
-  if (!cfg.colorMode) return;
+  if (!cfg.colorMode || !cfg.colorParam) return;
   const r = paramRange(cfg.colorParam);
   if (!r) return;
   const { x, y, w, h } = plotRect;
@@ -994,12 +1009,12 @@ function svgEmit() {
   // ---- 数据(与各 render* 同几何) ----
   if (cfg.type === 'scatter') {
     const pts = dataFor(cfg.x).filter(d => {
-      const yv = getParam(d.c, cfg.y);
+      const yv = valOf(d.c, cfg.y);
       return yv != null && isFinite(yv);
     });
     const e = cfg.errBars ? errOf(cfg.y) : null;
     pts.forEach(d => {
-      const c = d.c, yv = getParam(d.c, cfg.y);
+      const c = d.c, yv = valOf(d.c, cfg.y);
       const X = r2(xScaleAt(d.v)), Y = r2(yScaleAt(yv));
       if (e) {
         const err = e.abs != null ? e.abs : e.f * Math.abs(yv);
@@ -1052,12 +1067,12 @@ function svgEmit() {
         P.push([vals[vals.length - 1], 1]);
         poly(P.map(p => [xScaleAt(p[0]), yScaleAt(p[1])]));
       } else if (cfg.lineMode === 'sorted') {
-        const pts = ds.map(d => ({ x: d.v, y: getParam(d.c, cfg.y) }))
+        const pts = ds.map(d => ({ x: d.v, y: valOf(d.c, cfg.y) }))
                       .filter(p => p.y != null && isFinite(p.y))
                       .sort((a, b) => a.x - b.x);
         poly(pts.map(p => [xScaleAt(p.x), yScaleAt(p.y)]));
       } else {
-        const pts = ds.map(d => ({ x: d.v, y: getParam(d.c, cfg.y) }))
+        const pts = ds.map(d => ({ x: d.v, y: valOf(d.c, cfg.y) }))
                       .filter(p => p.y != null && isFinite(p.y));
         if (pts.length) {
           const lo = Math.min(...pts.map(p => p.x)), hi = Math.max(...pts.map(p => p.x));
@@ -1079,11 +1094,11 @@ function svgEmit() {
     }
   } else if (cfg.type === 'heat') {
     const ds = dataFor(cfg.x).filter(d => {
-      const yv = getParam(d.c, cfg.y);
+      const yv = valOf(d.c, cfg.y);
       return yv != null && isFinite(yv);
     });
     if (ds.length) {
-      const xs = ds.map(d => d.v), ys = ds.map(d => getParam(d.c, cfg.y));
+      const xs = ds.map(d => d.v), ys = ds.map(d => valOf(d.c, cfg.y));
       const xlo = Math.min(...xs), xhi = Math.max(...xs);
       const ylo = Math.min(...ys), yhi = Math.max(...ys);
       const nb = Math.max(2, cfg.heatBins);
@@ -1091,7 +1106,7 @@ function svgEmit() {
       const counts = Array.from({ length: nb }, () => Array(nb).fill(0));
       ds.forEach(d => {
         let bx = Math.floor((d.v - xlo) / bw); if (bx >= nb) bx = nb - 1; if (bx < 0) bx = 0;
-        const yv = getParam(d.c, cfg.y);
+        const yv = valOf(d.c, cfg.y);
         let by = Math.floor((yv - ylo) / bh); if (by >= nb) by = nb - 1; if (by < 0) by = 0;
         counts[bx][by]++;
       });
@@ -1109,18 +1124,19 @@ function svgEmit() {
   }
 
   // ---- 图例(overlay/colorMode 时, 同 renderLegend 几何) ----
-  if (cfg.overlay !== 'none' || cfg.colorMode) {
+  const colorActive = cfg.colorMode && !!cfg.colorParam;
+  if (cfg.overlay !== 'none' || colorActive) {
     const rows = [];
     if (cfg.overlay !== 'none') {
       const NAMES = { disc: 'Disc (Rgc<8)', halo: 'Halo (Rgc≥8)', rich: 'Metal-rich', poor: 'Metal-poor' };
       rows.push({ label: NAMES[cfg.overlay] || cfg.overlay, swatch: SERIES[1] });
     }
-    if (cfg.colorMode) rows.push({ label: 'Color: ' + axisLabel(cfg.colorParam), swatch: 'gradient' });
+    if (colorActive) rows.push({ label: 'Color: ' + axisLabel(cfg.colorParam), swatch: 'gradient' });
     const pad = 8, rh = 16, sw = 12;
     let tw = 0;
     rows.forEach(r => { tw = Math.max(tw, r.label.length * 6.2); });   // 12px Georgia 近似字宽
     const bw = tw + sw + pad * 3, bh = rows.length * rh + pad;
-    const off = cfg.colorMode ? 40 : 8;
+    const off = colorActive ? 40 : 8;
     const bx = x + w - bw - off, by = y + 8;
     push('<rect x="' + r2(bx) + '" y="' + r2(by) + '" width="' + r2(bw) + '" height="' + r2(bh) + '" fill="#ffffff" stroke="#000000"/>');
     rows.forEach((r, i) => {
@@ -1134,8 +1150,8 @@ function svgEmit() {
     });
   }
 
-  // ---- colorbar(colorMode 时, 同 renderColorbar 几何) ----
-  if (cfg.colorMode) {
+  // ---- colorbar(colorMode 且 colorParam 时, 同 renderColorbar 几何) ----
+  if (cfg.colorMode && cfg.colorParam) {
     const r = paramRange(cfg.colorParam);
     if (r) {
       const cw = 12, gap = 8, inset = 6;
@@ -1182,8 +1198,8 @@ function fracLe(sorted, v) {
 function plotPoints() {
   if (cfg.type === 'scatter') {
     return dataFor(cfg.x)
-      .filter(d => { const yv = getParam(d.c, cfg.y); return yv != null && isFinite(yv); })
-      .map(d => ({ id: d.c.id, x: d.v, y: getParam(d.c, cfg.y) }));
+      .filter(d => { const yv = valOf(d.c, cfg.y); return yv != null && isFinite(yv); })
+      .map(d => ({ id: d.c.id, x: d.v, y: valOf(d.c, cfg.y) }));
   }
   if (cfg.type === 'line') {
     const ds = dataFor(cfg.x);
@@ -1194,8 +1210,8 @@ function plotPoints() {
       return ds.map(d => ({ id: d.c.id, x: d.v, y: fracLe(vals, d.v) / n }));
     }
     return ds
-      .filter(d => { const yv = getParam(d.c, cfg.y); return yv != null && isFinite(yv); })
-      .map(d => ({ id: d.c.id, x: d.v, y: getParam(d.c, cfg.y) }));
+      .filter(d => { const yv = valOf(d.c, cfg.y); return yv != null && isFinite(yv); })
+      .map(d => ({ id: d.c.id, x: d.v, y: valOf(d.c, cfg.y) }));
   }
   return [];
 }
@@ -1491,7 +1507,7 @@ Object.assign(window, {
   cfg, setCfg, TEMPLATES, syncCfgControls,
   niceTicks, fmtTick, linScale, logScale, viridis,
   draw, renderAxes,
-  dataFor, plotPoints,
+  dataFor, plotPoints, pointRadius, pointColor, paramRange, getParam, norm01,
   screenToData, hitTest, setHover, setFocus,
   svgEmit, exportPNG, exportSVG,
   getPlotState: () => ({
