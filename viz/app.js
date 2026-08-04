@@ -5,6 +5,24 @@
 if (typeof THREE === 'undefined') { alert('three.min.js 未加载'); return; }
 
 const D = GC_DATA, CL = D.clusters, RSUN = D.meta.r_sun;
+
+// ---------- M/NGC 名称互通: 解析 Messier 编号, 生成显示名与搜索键 ----------
+const normKey = s => (s || '').toLowerCase().replace(/\s+/g, '');
+const fmtId = id => id.replace(/(NGC)(\d+)/, '$1 $2');   // NGC6205 -> NGC 6205
+CL.forEach(c => {
+  const nm = c.name || '';
+  // Messier 编号: 名称里 "M 13" / "M13" 或 ID 形如 M13
+  let msg = null;
+  const m = nm.match(/M\s?(\d+)/i) || (c.id && c.id.match(/^M\s?(\d+)$/i));
+  if (m) msg = 'M' + m[1];
+  c.msg = msg;
+  // 显示名: "M13 · NGC 6205" / "47 Tuc · NGC 104" / "NGC 104"
+  if (msg) c.disp = msg + ' · ' + fmtId(c.id);
+  else if (nm && nm !== c.id) c.disp = nm + ' · ' + fmtId(c.id);
+  else c.disp = fmtId(c.id);
+  // 搜索键: 归一化名称/ID/Messier/纯数字
+  c.keys = [normKey(nm), normKey(c.id), msg ? normKey(msg) : '', c.id.replace(/\D/g, '')].filter(Boolean);
+});
 const $ = id => document.getElementById(id);
 
 // ---------- renderer / scene ----------
@@ -276,8 +294,9 @@ const ringGroup = new THREE.Group();
     pts.push(V(r * Math.cos(t), r * Math.sin(t), 0));
   }
   const geo = new THREE.BufferGeometry().setFromPoints(pts);
-  const mat = new THREE.LineBasicMaterial({ color: 0x3a4a80, transparent: true,
-    opacity: i === 1 ? 0.5 : 0.22 });
+  // 太阳圈环更亮(0.75), 其余参考环 0.4; 颜色提亮以便在深色背景可见
+  const mat = new THREE.LineBasicMaterial({ color: i === 1 ? 0x7fa8e8 : 0x5a74b8,
+    transparent: true, opacity: i === 1 ? 0.75 : 0.4 });
   ringGroup.add(new THREE.Line(geo, mat));
   // 太阳圈 (R=R☉=8.275kpc, 太阳绕银心公转轨道圈) 加标签, 避免与太阳系混淆
   if (i === 1) {
@@ -439,7 +458,7 @@ function makeLabel(text, v) {
   return s;
 }
 CL.forEach(c => {
-  if (c.MV != null && c.MV < -8.3) labelGroup.add(makeLabel(c.name, V(c.x, c.y, c.z)));
+  if (c.MV != null && c.MV < -8.3) labelGroup.add(makeLabel(c.msg || c.name || c.id, V(c.x, c.y, c.z)));
 });
 
 // ---------- orbits ----------
@@ -493,8 +512,8 @@ function fmt(v, nd = 2, na = '—') { return (v == null || isNaN(v)) ? na : (+v)
 
 function showInfo(c) {
   selected = c;
-  $('i-name').textContent = c.name;
-  $('i-alias').textContent = c.id !== c.name ? `${c.id}` : '';
+  $('i-name').textContent = c.disp || c.name;
+  $('i-alias').textContent = '';
   const o = c.orbit;
   $('i-grid').innerHTML =
     cell('Distance', fmt(c.dist, 2), 'kpc') +
@@ -592,7 +611,7 @@ renderer.domElement.addEventListener('pointermove', e => {
       if (visArr[i] > 0.5) {
         const c = CL[i];
         setHover(i);
-        htip.innerHTML = `<div class="ht-name">${c.name}</div>` +
+        htip.innerHTML = `<div class="ht-name">${c.disp || c.name}</div>` +
           (c.id !== c.name ? `<div class="ht-id">${c.id}</div>` : '') +
           `<div class="ht-row"><span>${mx('d')}</span><b>${fmt(c.dist,2)} kpc</b></div>` +
           `<div class="ht-row"><span>[Fe/H]</span><b>${fmt(c.feh,2)}</b></div>` +
@@ -752,13 +771,15 @@ const q = $('q'), sugg = $('sugg');
 function doSearch(s) {
   s = s.trim().toLowerCase();
   if (!s) { sugg.classList.remove('show'); return; }
-  const hits = CL.filter(c => c.name.toLowerCase().includes(s) || c.id.toLowerCase().includes(s)).slice(0, 8);
+  // 归一化匹配: "M13" == "M 13", "ngc 6205" == "ngc6205" == "6205"
+  const nq = s.replace(/\s+/g, '');
+  const hits = CL.filter(c => c.keys.some(k => k.includes(nq))).slice(0, 8);
   if (!hits.length) { sugg.classList.remove('show'); return; }
-  sugg.innerHTML = hits.map(c => `<div class="it" data-id="${c.id}"><span>${c.name}</span><small>${fmt(c.dist,1)}k</small></div>`).join('');
+  sugg.innerHTML = hits.map(c => `<div class="it" data-id="${c.id}"><span>${c.disp || c.name}</span><small>${fmt(c.dist,1)}k</small></div>`).join('');
   sugg.classList.add('show');
   [...sugg.children].forEach(el => el.onclick = () => {
     const c = CL.find(x => x.id === el.dataset.id);
-    sugg.classList.remove('show'); q.value = c.name;
+    sugg.classList.remove('show'); q.value = c.disp || c.name;
     showInfo(c); flyTo(V(c.x, c.y, c.z), 8);
   });
 }
