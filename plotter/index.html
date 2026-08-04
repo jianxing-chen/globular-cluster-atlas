@@ -43,6 +43,8 @@ body{display:flex;min-width:0}
   border-radius:7px;padding:4px 10px;font-family:var(--mono);font-size:11px;cursor:pointer;transition:all .18s}
 #btn-expand.show{display:inline-block}
 #btn-expand:hover{background:rgba(120,160,255,.16);color:var(--txt)}
+/* 折叠侧栏时, 给顶部标题让出展开按钮(fixed 左上角)的位置 */
+#sidebar.collapsed ~ #workbench .topbar{padding-left:56px}
 .side-body{flex:1;overflow-y:auto;padding:14px 16px 20px}
 .side-body::-webkit-scrollbar{width:6px}
 .side-body::-webkit-scrollbar-thumb{background:var(--line2);border-radius:3px}
