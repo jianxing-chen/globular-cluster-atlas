@@ -184,13 +184,13 @@ GlobularClusterAtlas/
 ├── viz/                     # ★ 3D Web 应用（自包含，打开 viz/index.html）
 │   ├── index.html
 │   ├── app.js               # Three.js 应用（纯经典脚本，无 module）
-│   ├── gc_data.js           # 176 球状星团 + 135 轨道
-│   ├── streams_data.js      # 124 恒星流
 │   └── assets/              # three.min.js + OrbitControls（本地化，离线可用）
 ├── plotter/                 # ★ APJ 风格制图工作台（打开 plotter/index.html）
 │   ├── index.html
 │   └── plotter.js           # scatter/hist/line/heat 渲染器 + SVG/PNG 导出
 ├── webdata/                 # Web 应用共享数据包
+│   ├── gc_data.js           # 176 球状星团 + 135 轨道
+│   ├── streams_data.js      # 124 恒星流
 │   └── plotter_data.js      # 176 星团子集（制图台所用参数）
 ├── data/
 │   ├── raw/                 # VizieR 原始 TSV（4 个星表）

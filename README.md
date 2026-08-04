@@ -183,13 +183,13 @@ GlobularClusterAtlas/
 ├── viz/                     # ★ 3D web app (self-contained; open viz/index.html)
 │   ├── index.html
 │   ├── app.js               # Three.js app (plain classic script, no modules)
-│   ├── gc_data.js           # 176 clusters + 135 orbits
-│   ├── streams_data.js      # 124 stellar streams
 │   └── assets/              # three.min.js + OrbitControls (local, offline)
 ├── plotter/                 # ★ APJ-style figure workbench (open plotter/index.html)
 │   ├── index.html
 │   └── plotter.js           # scatter/hist/line/heat renderers + SVG/PNG export
 ├── webdata/                 # shared data bundles for the web apps
+│   ├── gc_data.js           # 176 clusters + 135 orbits
+│   ├── streams_data.js      # 124 stellar streams
 │   └── plotter_data.js      # 176-cluster subset (params used by the plotter)
 ├── data/
 │   ├── raw/                 # raw VizieR TSV (4 catalogs)

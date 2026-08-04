@@ -442,6 +442,17 @@ function draw(target) {
   g.fillRect(0, 0, W, H);
   plotRect = { x: MARGINS.l, y: MARGINS.t, w: W - MARGINS.l - MARGINS.r, h: H - MARGINS.t - MARGINS.b };
 
+  // 空选中态: 画布中央一行灰色斜体提示(衬线), 不画坐标轴/数据; 导出按钮统一禁用
+  if (selected.size === 0) {
+    g.fillStyle = '#666';
+    g.font = 'italic 20px Georgia, "Times New Roman", serif';
+    g.textAlign = 'center';
+    g.textBaseline = 'middle';
+    g.fillText('No clusters selected', W / 2, H / 2);
+    updateExportButtons();
+    return;
+  }
+
   const hist = cfg.type === 'hist';
   let xr = spreadRange(paramRange(cfg.x, cfg.logX), [0, 1]);
   let yr = hist ? { min: 0, max: 1 } : spreadRange(paramRange(cfg.y, cfg.logY), [0, 1]);
@@ -472,6 +483,17 @@ function draw(target) {
   renderColorbar(g);
   renderHighlight(g);
   updateCaption();
+  updateExportButtons();
+}
+
+// 导出按钮可用态: 空选中(selected.size === 0)时禁用 #btn-png/#btn-svg,
+// 恢复选中后重新启用. draw() 末尾统一调用, 与画布状态始终同步.
+function updateExportButtons() {
+  const empty = selected.size === 0;
+  ['btn-png', 'btn-svg'].forEach(id => {
+    const el = $(id);
+    if (el) el.disabled = empty;
+  });
 }
 
 // 四边黑框 + 向内主/次刻度 + 轴标签(变量斜体 Georgia serif, 含单位); 无网格线
@@ -793,6 +815,7 @@ function renderHeat(ctx, xScale, yScale) {
 function updateCaption() {
   const capEl = $('caption-input');
   if (!capEl) return;
+  if (document.activeElement === capEl) return;   // 用户正在编辑图注: 任何重绘不得覆盖 textarea
   const figEl = $('fig-no');
   const figNo = (figEl && figEl.value) ? figEl.value : '1';
   const need = cfg.type === 'hist' ? [cfg.x] : [cfg.x, cfg.y];
@@ -1384,6 +1407,7 @@ function downloadDataURL(url, name) {
 // 导出前临时清空 hover/focus 高亮, 成品图为干净帧.
 function exportPNG() {
   if (!canvas) return null;
+  if (selected.size === 0) return null;   // 空选中无可导出内容(按钮已禁用, 双保险)
   const SCALE = 3;
   const off = document.createElement('canvas');
   off.width = canvas.width * SCALE;
@@ -1400,6 +1424,7 @@ function exportPNG() {
 
 // svgEmit() → Blob 下载; 返回 SVG 字符串供测试断言
 function exportSVG() {
+  if (selected.size === 0) return null;   // 空选中无可导出内容(按钮已禁用, 双保险)
   const svg = svgEmit();
   if (!svg) return null;
   const blob = new Blob([svg], { type: 'image/svg+xml' });
