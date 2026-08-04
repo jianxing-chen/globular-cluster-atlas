@@ -388,6 +388,7 @@ function logTickInfo(min, max) {
 
 // 归一化 t∈[0,1]: 线性带 pad(默认 5%), 对数在 log10 空间
 function linT(v, min, max, pad) {
+  if (pad == null) pad = 0.05;
   const span = (max - min) || 1;
   const lo = min - span * pad, hi = max + span * pad;
   return (v - lo) / (hi - lo);
@@ -542,11 +543,218 @@ function renderAxes(ctx, xScale, yScale) {
   ctx.restore();
 }
 
-// 类型渲染桩(Task 6 实现); 保持调用链与坐标尺签名
-function renderScatter(xScale, yScale) { console.log('stub: renderScatter()'); }
-function renderHist(xScale, yScale)    { console.log('stub: renderHist()'); }
-function renderLine(xScale, yScale)    { console.log('stub: renderLine()'); }
-function renderHeat(xScale, yScale)    { console.log('stub: renderHeat()'); }
+// ============ 数据与样式辅助 (Task 6) ============
+// 选中星团中某参数的非空有限值列表
+function dataFor(paramId) {
+  const p = PARAM_BY_ID[paramId];
+  if (!p) return [];
+  const out = [];
+  DATA.forEach(c => {
+    if (!selected.has(c.id)) return;
+    const v = p.get(c);
+    if (v == null || !isFinite(v)) return;
+    out.push({ c, v });
+  });
+  return out;
+}
+
+// 分组: overlay 'disc' → Rgc<8 为组0; 'rich' → [Fe/H]>-1 为组0; 'none' → null
+function groupOf(c) {
+  if (cfg.overlay === 'disc') return c.rgc != null && c.rgc < 8 ? 0 : 1;
+  if (cfg.overlay === 'rich') return c.feh != null && c.feh > -1 ? 0 : 1;
+  return null;
+}
+
+// v 在 [min,max] 上归一化到 [0,1]
+function norm01(v, min, max) {
+  if (min === max) return 0.5;
+  return (v - min) / (max - min);
+}
+
+// 点色: colorMode → viridis(colorParam 归一化); 否则灰度 SERIES[组]
+function pointColor(c) {
+  if (cfg.colorMode) {
+    const r = paramRange(cfg.colorParam, false);
+    const v = getParam(c, cfg.colorParam);
+    if (r && v != null) return viridis(norm01(v, r.min, r.max));
+    return '#666';
+  }
+  const g = groupOf(c);
+  return SERIES[g == null ? 0 : g];
+}
+
+// 点大小: sizeParam 归一化到 2.5-7 px
+function pointRadius(c) {
+  const r = paramRange(cfg.sizeParam, false);
+  const v = getParam(c, cfg.sizeParam);
+  if (!r || v == null) return 4.5;
+  return 2.5 + 4.5 * norm01(v, r.min, r.max);
+}
+
+// 示意性误差棒幅度(数据源无误差列; 图注标注 illustrative)
+function errOf(paramId) {
+  switch (paramId) {
+    case 'dist':   return { f: 0.05, abs: null, label: '5%' };
+    case 'pmra': case 'pmde': return { f: null, abs: 0.05, label: '0.05 mas/yr' };
+    case 'sigma0': return { f: 0.10, abs: null, label: '10%' };
+    default: return null;
+  }
+}
+
+function renderScatter(xScale, yScale) {
+  const pts = dataFor(cfg.x).filter(d => {
+    const yv = getParam(d.c, cfg.y);
+    return yv != null && isFinite(yv);
+  });
+  const e = cfg.errBars ? errOf(cfg.y) : null;
+  ctx.save();
+  pts.forEach(d => {
+    const c = d.c, yv = getParam(c, cfg.y);
+    const x = xScale(d.v), y = yScale(yv);
+    const g = groupOf(c), col = pointColor(c);
+    if (e) {
+      const err = e.abs != null ? e.abs : e.f * Math.abs(yv);
+      ctx.strokeStyle = '#999'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(x, yScale(yv - err)); ctx.lineTo(x, yScale(yv + err)); ctx.stroke();
+    }
+    ctx.beginPath();
+    ctx.fillStyle = col;
+    if (g === 1) {
+      ctx.strokeStyle = col; ctx.lineWidth = 1.2;
+      ctx.arc(x, y, pointRadius(c), 0, Math.PI * 2); ctx.stroke();
+    } else {
+      ctx.arc(x, y, pointRadius(c), 0, Math.PI * 2); ctx.fill();
+    }
+  });
+  ctx.restore();
+}
+
+function renderHist(xScale, yScale) {
+  const ds = dataFor(cfg.x);
+  const n = ds.length;
+  if (!n) return;
+  let lo = Infinity, hi = -Infinity;
+  ds.forEach(d => { if (d.v < lo) lo = d.v; if (d.v > hi) hi = d.v; });
+  const bins = Math.max(1, cfg.bins);
+  const binW = (hi - lo) / bins || 1;
+  // counts[bin][group]
+  const counts = Array.from({ length: bins }, () => [0, 0]);
+  ds.forEach(d => {
+    let b = Math.floor((d.v - lo) / binW);
+    if (b >= bins) b = bins - 1;
+    if (b < 0) b = 0;
+    const g = groupOf(d.c);
+    counts[b][g == null ? 0 : g]++;
+  });
+  const maxCount = Math.max(1, ...counts.flat());
+  // 重设 Y 轴为实际计数(或密度)范围, 重画坐标轴(闭包捕获 axisY 引用, 自动生效)
+  axisY = {
+    min: cfg.density ? 0 : 1, max: cfg.density ? 1 : maxCount,
+    log: cfg.logY,
+    lo: cfg.logY ? (cfg.density ? 0.01 : 1) : 0,
+    hi: cfg.logY ? Math.pow(10, Math.ceil(Math.log10(Math.max(maxCount, 1)))) : (cfg.density ? 1 : maxCount),
+    label: cfg.density ? 'Normalized density' : 'N',
+  };
+  renderAxes(ctx, xScale, yScale);
+  ctx.save();
+  const bwFull = plotRect.w / bins, bwDraw = bwFull * 0.9, base = plotRect.y + plotRect.h;
+  const yOf = cnt => yScale(cfg.density ? cnt / (n * binW) : cnt);
+  for (let b = 0; b < bins; b++) {
+    const x0 = xScale(lo + b * binW);
+    const c0 = counts[b][0], c1 = counts[b][1];
+    if (c0 > 0) { ctx.fillStyle = '#000'; ctx.fillRect(x0 + bwFull * 0.05, yOf(c0), bwDraw, base - yOf(c0)); }
+    if (c1 > 0) { ctx.strokeStyle = '#000'; ctx.lineWidth = 1; ctx.strokeRect(x0 + bwFull * 0.05, yOf(c1), bwDraw, base - yOf(c1)); }
+  }
+  ctx.restore();
+}
+
+function renderLine(xScale, yScale) {
+  const ds = dataFor(cfg.x);
+  if (!ds.length) return;
+  const mode = cfg.lineMode;
+  ctx.save();
+  if (mode === 'cdf') {
+    // 累积分布阶梯: 对 x 参数值排序, 累积分数 0→1
+    const vals = ds.map(d => d.v).sort((a, b) => a - b);
+    axisY = { min: 0, max: 1, log: false, lo: 0, hi: 1, label: 'Cumulative fraction' };
+    renderAxes(ctx, xScale, yScale);
+    ctx.strokeStyle = '#000'; ctx.lineWidth = 1.5; ctx.beginPath();
+    vals.forEach((v, i) => {
+      const X = xScale(v), Y = yScale(i / vals.length);
+      if (i === 0) ctx.moveTo(X, Y); else ctx.lineTo(X, Y);
+    });
+    ctx.lineTo(xScale(vals[vals.length - 1]), yScale(1));
+    ctx.stroke();
+  } else if (mode === 'sorted') {
+    // 按 X 排序连线
+    const pts = ds.map(d => ({ x: d.v, y: getParam(d.c, cfg.y) }))
+                  .filter(p => p.y != null && isFinite(p.y))
+                  .sort((a, b) => a.x - b.x);
+    ctx.strokeStyle = '#000'; ctx.lineWidth = 1.5; ctx.beginPath();
+    pts.forEach((p, i) => {
+      const X = xScale(p.x), Y = yScale(p.y);
+      if (i === 0) ctx.moveTo(X, Y); else ctx.lineTo(X, Y);
+    });
+    ctx.stroke();
+  } else {
+    // trend: cfg.bins 个 bin 的均值 ±1σ 阴影带 + 均值连线
+    const pts = ds.map(d => ({ x: d.v, y: getParam(d.c, cfg.y) }))
+                  .filter(p => p.y != null && isFinite(p.y));
+    if (!pts.length) { ctx.restore(); return; }
+    const lo = Math.min(...pts.map(p => p.x)), hi = Math.max(...pts.map(p => p.x));
+    const bins = Math.max(1, cfg.bins), bw = (hi - lo) / bins || 1;
+    const bwPx = plotRect.w / bins;
+    ctx.fillStyle = 'rgba(0,0,0,0.15)';
+    let started = false;
+    ctx.strokeStyle = '#000'; ctx.lineWidth = 1.5; ctx.beginPath();
+    for (let b = 0; b < bins; b++) {
+      const bv = pts.filter(p => p.x >= lo + b * bw && p.x < lo + (b + 1) * bw);
+      if (!bv.length) continue;
+      const mean = bv.reduce((s, p) => s + p.y, 0) / bv.length;
+      const sd = Math.sqrt(bv.reduce((s, p) => s + (p.y - mean) ** 2, 0) / bv.length);
+      const X = xScale(lo + (b + 0.5) * bw);
+      const yTop = yScale(mean + sd), yBot = yScale(mean - sd);
+      ctx.fillRect(X - bwPx / 2, yTop, bwPx, yBot - yTop);
+      if (started) ctx.lineTo(X, yScale(mean)); else { ctx.moveTo(X, yScale(mean)); started = true; }
+    }
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function renderHeat(xScale, yScale) {
+  const ds = dataFor(cfg.x).filter(d => {
+    const yv = getParam(d.c, cfg.y);
+    return yv != null && isFinite(yv);
+  });
+  if (!ds.length) return;
+  const xs = ds.map(d => d.v), ys = ds.map(d => getParam(d.c, cfg.y));
+  const xlo = Math.min(...xs), xhi = Math.max(...xs);
+  const ylo = Math.min(...ys), yhi = Math.max(...ys);
+  const nb = Math.max(2, cfg.heatBins);
+  const bw = (xhi - xlo) / nb || 1, bh = (yhi - ylo) / nb || 1;
+  const counts = Array.from({ length: nb }, () => Array(nb).fill(0));
+  ds.forEach(d => {
+    let bx = Math.floor((d.v - xlo) / bw); if (bx >= nb) bx = nb - 1; if (bx < 0) bx = 0;
+    const yv = getParam(d.c, cfg.y);
+    let by = Math.floor((yv - ylo) / bh); if (by >= nb) by = nb - 1; if (by < 0) by = 0;
+    counts[bx][by]++;
+  });
+  const maxC = Math.max(1, ...counts.flat());
+  const cw = plotRect.w / nb, ch = plotRect.h / nb;
+  ctx.save();
+  for (let i = 0; i < nb; i++) for (let j = 0; j < nb; j++) {
+    const c = counts[i][j];
+    if (!c) continue;
+    const t = cfg.heatLog ? Math.log10(c) / Math.log10(maxC) : c / maxC;
+    if (cfg.colorMode) { ctx.fillStyle = viridis(t); ctx.globalAlpha = 0.85; }
+    else { ctx.fillStyle = '#000'; ctx.globalAlpha = 0.06 + 0.94 * t; }
+    const x0 = xScale(xlo + i * bw);
+    const y0 = yScale(ylo + (j + 1) * bh), y1 = yScale(ylo + j * bh);
+    ctx.fillRect(x0, y0, cw + 0.5, y1 - y0);
+  }
+  ctx.restore();
+}
 
 // 图注: "Fig. <#fig-no>.— <描述>. Selected N clusters; missing M values skipped."
 // #fig-no 与 #caption-input 均可编辑; 每次 draw() 重生成.
@@ -566,6 +774,9 @@ function updateCaption() {
     : axisLabel(cfg.x) + ' vs ' + axisLabel(cfg.y);
   capEl.value = 'Fig. ' + figNo + '.— ' + desc + '. Selected ' + selected.size +
     ' clusters; missing ' + missing + ' values skipped.';
+  if (cfg.type === 'scatter' && cfg.errBars && errOf(cfg.y)) {
+    capEl.value += ' Error bars illustrative (' + errOf(cfg.y).label + ').';
+  }
 }
 
 // 图例: 仅多组(overlay ≠ none)或 colorMode 时, 右上角(plot rect 内)黑框 + 色块 + 文字
