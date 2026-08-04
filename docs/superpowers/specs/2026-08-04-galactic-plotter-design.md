@@ -40,22 +40,33 @@ choose between the 3D explorer and the plotter from the landing page.
 ```
 jianxing-chen.github.io/globular-cluster-atlas/
 ├── index.html        # ★ App hub: hero + dual entry cards → [3D Explorer] [Plotter]
-├── viz/              # App 1: 3D explorer (unchanged)
-│   ├── index.html · app.js · gc_data.js · streams_data.js · assets/
-├── plotter/          # App 2: APJ figure workbench (NEW, self-contained)
+├── webdata/          # ★ Unified data layer (browser JS data, single source)
+│   ├── gc_data.js        # 3D app: 176 clusters + 135 orbit tracks (+meta)
+│   ├── streams_data.js   # 3D app: 124 stellar streams
+│   └── plotter_data.js   # plotter: 176 clusters × 39 fields (NO orbit arrays, ~100 KB)
+├── viz/              # App 1: 3D explorer (code only; loads ../webdata/*)
+│   ├── index.html · app.js · assets/ (three.min.js + OrbitControls — viz-private libs)
+├── plotter/          # App 2: APJ figure workbench (NEW; code only, no assets dir)
 │   ├── index.html        # URL: .../plotter/
-│   ├── plotter.js        # all logic (single classic script)
-│   ├── plotter_data.js   # parameter-only data (~100 KB, NO orbit track arrays)
-│   └── assets/           # shared style vars; no external libs
-├── data/ scripts/ figures/ docs/ README*  (unchanged)
+│   └── plotter.js        # all logic (single classic script; styles inline)
+├── data/             # Python pipeline: raw/ (VizieR TSV) + processed/ (csv/json/pkl)
+├── scripts/ figures/ docs/ README*  (unchanged)
 ```
 
-### Data organization
+### Data organization (v2)
 
-- `scripts/export_viz_data.py` is extended to also emit **`plotter/plotter_data.js`**:
-  the same 176 clusters × 39 fields **without the 3-D orbit track arrays** (which dominate
-  `gc_data.js`'s 884 KB) — keeping the plotter app fully self-contained (~100 KB).
-- Single source of truth: one export script generates both data files; no duplicated
+- **Single unified data layer `webdata/`** for all web apps; Python pipeline data stays in
+  `data/` (raw TSV + processed csv/json/pkl). No data files live inside app directories.
+- `scripts/export_viz_data.py` is extended to emit **all three files into `webdata/`**:
+  `gc_data.js` (clusters + orbits), `streams_data.js` (streams), and the new
+  `plotter_data.js` (clusters × fields **without** 3-D orbit track arrays — keeps the
+  plotter bundle ~100 KB).
+- Existing `viz/index.html` script tags are updated to `../webdata/gc_data.js` and
+  `../webdata/streams_data.js` (classic scripts load cross-directory fine on `file://`
+  and GitHub Pages — no CORS issue, already the project's pattern).
+- `viz/assets/` keeps only viz-private library files (three.min.js, OrbitControls);
+  the plotter has **no** assets directory (no external libs, styles inlined in index.html).
+- Single source of truth: one export script generates all web data; no duplicated
   hand-maintained data.
 
 ### plotter.js module layout (single file, clearly sectioned)
@@ -154,7 +165,8 @@ Current homepage becomes the hub for two apps:
 
 ## 11. Deliverables
 
-- [ ] `plotter/index.html` + `plotter/plotter.js` + `plotter/plotter_data.js` (via export script)
+- [ ] `webdata/` unified data layer: move `gc_data.js` + `streams_data.js` in, add `plotter_data.js` (via extended export script); update `viz/index.html` script paths
+- [ ] `plotter/index.html` + `plotter/plotter.js`
 - [ ] Homepage hub redesign (hero dual buttons, Apps section, nav update)
 - [ ] README bilingual updates
 - [ ] Screenshots (plotter) + headless verification
