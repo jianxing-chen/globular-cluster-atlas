@@ -647,12 +647,22 @@ function renderHist(xScale, yScale) {
     counts[b][g == null ? 0 : g]++;
   });
   const maxCount = Math.max(1, ...counts.flat());
-  // 重设 Y 轴为实际计数(或密度)范围, 重画坐标轴(闭包捕获 axisY 引用, 自动生效)
+  // 密度模式峰值 = 实际最大密度(max over bins of cnt/(n·binW)); 不可固定 1, 峰值密度可 >1
+  const peakDens = cfg.density
+    ? Math.max(...counts.map(b => (b[0] + b[1]) / (n * binW)))
+    : maxCount;
+  // 重设 Y 轴为实际计数(或密度)范围, 重画坐标轴(闭包捕获 axisY 引用, 自动生效).
+  // yScale 内部用 linT(v, axisY.min, axisY.max) 带默认 pad=0.05, 有效范围是
+  // [min−0.05·span, max+0.05·span]; 线性模式 lo/hi 必须与之对齐(lo 为负 → y=0 刻度仍在框内):
+  //   计数: min=0, max=maxCount, lo=−0.05·maxCount, hi=1.05·maxCount
+  //   密度: min=0, max=peakDens,  lo=−0.05·peakDens, hi=1.05·peakDens
+  // logY: 保持现有逻辑(10 的整幂端点, 无 padding)
   axisY = {
-    min: cfg.density ? 0 : 1, max: cfg.density ? 1 : maxCount,
+    min: cfg.logY ? (cfg.density ? 0.01 : 1) : 0,
+    max: cfg.logY ? Math.pow(10, Math.ceil(Math.log10(Math.max(peakDens, 1)))) : peakDens,
     log: cfg.logY,
-    lo: cfg.logY ? (cfg.density ? 0.01 : 1) : 0,
-    hi: cfg.logY ? Math.pow(10, Math.ceil(Math.log10(Math.max(maxCount, 1)))) : (cfg.density ? 1 : maxCount),
+    lo: cfg.logY ? (cfg.density ? 0.01 : 1) : -0.05 * peakDens,
+    hi: cfg.logY ? Math.pow(10, Math.ceil(Math.log10(Math.max(peakDens, 1)))) : peakDens * 1.05,
     label: cfg.density ? 'Normalized density' : 'N',
   };
   renderAxes(ctx, xScale, yScale);
@@ -663,7 +673,7 @@ function renderHist(xScale, yScale) {
     const x0 = xScale(lo + b * binW);
     const c0 = counts[b][0], c1 = counts[b][1];
     if (c0 > 0) { ctx.fillStyle = '#000'; ctx.fillRect(x0 + bwFull * 0.05, yOf(c0), bwDraw, base - yOf(c0)); }
-    if (c1 > 0) { ctx.strokeStyle = '#000'; ctx.lineWidth = 1; ctx.strokeRect(x0 + bwFull * 0.05, yOf(c1), bwDraw, base - yOf(c1)); }
+    if (c1 > 0) { ctx.strokeStyle = '#bbb'; ctx.lineWidth = 1; ctx.strokeRect(x0 + bwFull * 0.05, yOf(c1), bwDraw, base - yOf(c1)); }
   }
   ctx.restore();
 }
@@ -679,10 +689,13 @@ function renderLine(xScale, yScale) {
     axisY = { min: 0, max: 1, log: false, lo: 0, hi: 1, label: 'Cumulative fraction' };
     renderAxes(ctx, xScale, yScale);
     ctx.strokeStyle = '#000'; ctx.lineWidth = 1.5; ctx.beginPath();
-    vals.forEach((v, i) => {
-      const X = xScale(v), Y = yScale(i / vals.length);
-      if (i === 0) ctx.moveTo(X, Y); else ctx.lineTo(X, Y);
-    });
+    // 标准阶梯 ECDF: moveTo(vals[0], 0) → 对每个 i: 垂直跳变 lineTo(vals[i], frac_i),
+    // 再对 i<n-1: 水平延伸 lineTo(vals[i+1], frac_i); 最后 lineTo(vals[n-1], 1)
+    ctx.moveTo(xScale(vals[0]), yScale(0));
+    for (let i = 0; i < vals.length; i++) {
+      ctx.lineTo(xScale(vals[i]), yScale(i / vals.length));
+      if (i < vals.length - 1) ctx.lineTo(xScale(vals[i + 1]), yScale(i / vals.length));
+    }
     ctx.lineTo(xScale(vals[vals.length - 1]), yScale(1));
     ctx.stroke();
   } else if (mode === 'sorted') {
