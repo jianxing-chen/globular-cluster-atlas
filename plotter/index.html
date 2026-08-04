@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Milky Way Globular Cluster Atlas — Plotter</title>
+<style>
+:root{
+  --bg:#05070f; --bg2:#0a0f1f; --panel:#0d1426; --panel2:#141c34;
+  --line:rgba(120,160,255,.14); --line2:rgba(120,160,255,.28);
+  --txt:#dfe7ff; --dim:#8593bd; --faint:#55608a;
+  --acc:#7fd4ff; --acc2:#4f8dff; --warm:#ffb454;
+  --mono:"SF Mono","JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--txt);
+  font-family:-apple-system,"Inter","Segoe UI",Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased}
+body{display:flex;min-width:0}
+
+/* ================= sidebar ================= */
+#sidebar{width:340px;flex-shrink:0;height:100vh;display:flex;flex-direction:column;
+  background:var(--panel);border-right:1px solid var(--line);
+  transition:margin-left .3s cubic-bezier(.4,0,.2,1)}
+#sidebar.collapsed{margin-left:-340px}
+.side-head{display:flex;align-items:center;justify-content:space-between;
+  padding:14px 16px;border-bottom:1px solid var(--line);flex-shrink:0}
+.side-head .eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:.28em;
+  color:var(--acc);text-transform:uppercase;display:flex;align-items:center;gap:8px}
+.side-head .eyebrow::before{content:"";width:22px;height:1px;background:var(--acc);display:inline-block}
+#btn-collapse{background:rgba(120,160,255,.07);color:var(--dim);border:1px solid var(--line);
+  border-radius:7px;padding:4px 9px;font-family:var(--mono);font-size:11px;cursor:pointer;transition:all .18s}
+#btn-collapse:hover{background:rgba(120,160,255,.16);color:var(--txt)}
+#btn-expand{position:fixed;top:12px;left:12px;z-index:60;display:none;
+  background:rgba(120,160,255,.07);color:var(--dim);border:1px solid var(--line);
+  border-radius:7px;padding:4px 10px;font-family:var(--mono);font-size:11px;cursor:pointer;transition:all .18s}
+#btn-expand.show{display:inline-block}
+#btn-expand:hover{background:rgba(120,160,255,.16);color:var(--txt)}
+.side-body{flex:1;overflow-y:auto;padding:14px 16px 20px}
+.side-body::-webkit-scrollbar{width:6px}
+.side-body::-webkit-scrollbar-thumb{background:var(--line2);border-radius:3px}
+
+.sec{margin-bottom:20px}
+.sec-title{font-family:var(--mono);font-size:9.5px;letter-spacing:.22em;color:var(--dim);
+  text-transform:uppercase;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
+.sec-title output{color:var(--acc);letter-spacing:0;font-weight:600}
+.f-group{margin-bottom:14px}
+.f-label{font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;color:var(--dim);
+  text-transform:uppercase;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center}
+.f-label output{color:var(--acc);letter-spacing:0;font-weight:600}
+
+input[type=text],input[type=number],input[type=search],select,textarea{
+  width:100%;background:var(--bg2);color:var(--txt);border:1px solid var(--line);
+  border-radius:7px;padding:7px 9px;font-size:12.5px;outline:none;transition:border-color .18s}
+input[type=text]:focus,input[type=number]:focus,input[type=search]:focus,select:focus,textarea:focus{border-color:var(--acc2)}
+input[type=number]{font-family:var(--mono);font-size:12px}
+select{appearance:none;-webkit-appearance:none;background-image:
+  linear-gradient(45deg,transparent 50%,var(--dim) 50%),linear-gradient(135deg,var(--dim) 50%,transparent 50%);
+  background-position:calc(100% - 16px) 55%,calc(100% - 11px) 55%;background-size:5px 5px;background-repeat:no-repeat;
+  cursor:pointer}
+select option{background:var(--panel);color:var(--txt)}
+
+/* search */
+#list-search{margin-bottom:8px}
+
+/* list rows */
+#cluster-list{max-height:34vh;overflow-y:auto;border:1px solid var(--line);border-radius:9px;
+  background:var(--bg2);padding:4px}
+#cluster-list::-webkit-scrollbar{width:6px}
+#cluster-list::-webkit-scrollbar-thumb{background:var(--line2);border-radius:3px}
+.row{display:flex;align-items:center;gap:8px;padding:3.5px 6px;border-radius:6px;
+  font-size:12px;color:var(--dim);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row:hover{background:rgba(120,160,255,.1);color:var(--txt)}
+.row input[type=checkbox]{accent-color:var(--acc2);flex-shrink:0;width:13px;height:13px;cursor:pointer}
+.row span{overflow:hidden;text-overflow:ellipsis}
+.row.dim{opacity:.38}
+
+/* bulk buttons */
+.btn-row{display:flex;gap:6px;margin:8px 0 12px}
+.btn-row button,.btn{flex:1;min-width:0;padding:6px 4px;font-family:var(--mono);font-size:9.5px;
+  letter-spacing:.05em;background:rgba(120,160,255,.07);color:var(--dim);
+  border:1px solid var(--line);border-radius:7px;cursor:pointer;transition:all .18s;white-space:nowrap}
+.btn-row button:hover,.btn:hover{background:rgba(120,160,255,.16);color:var(--txt)}
+.btn-row button:active,.btn:active{background:var(--acc2);color:#fff}
+
+/* batch grid */
+.batch-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 8px;margin-bottom:8px}
+.batch-grid .f-label{margin-bottom:3px}
+.batch-grid input{padding:5px 7px;font-size:11.5px}
+
+/* segmented control */
+.seg{display:flex;gap:5px;flex-wrap:wrap}
+.seg button{flex:1;min-width:0;padding:6px 4px;font-family:var(--mono);font-size:9.5px;
+  letter-spacing:.03em;background:rgba(120,160,255,.07);color:var(--dim);
+  border:1px solid var(--line);border-radius:7px;cursor:pointer;transition:all .18s;white-space:nowrap}
+.seg button:hover{background:rgba(120,160,255,.16);color:var(--txt)}
+.seg button.on{background:var(--acc2);color:#fff;border-color:var(--acc2);
+  box-shadow:0 0 12px rgba(79,141,255,.5)}
+
+/* toggle switch */
+.tgl{display:flex;align-items:center;justify-content:space-between;padding:6px 0;cursor:pointer}
+.tgl span{font-size:12px;color:var(--txt)}
+.sw{width:34px;height:18px;border-radius:10px;background:rgba(120,160,255,.18);
+  position:relative;transition:background .2s;flex-shrink:0}
+.sw::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;
+  background:#8aa0d0;transition:all .2s}
+.tgl input{display:none}
+.tgl input:checked + .sw{background:var(--acc2)}
+.tgl input:checked + .sw::after{left:18px;background:#fff}
+
+/* sliders */
+input[type=range]{width:100%;-webkit-appearance:none;appearance:none;height:3px;border-radius:2px;
+  background:linear-gradient(90deg,var(--acc2),var(--acc));outline:none;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:13px;height:13px;
+  border-radius:50%;background:#fff;border:2px solid var(--acc2);cursor:pointer;
+  box-shadow:0 0 8px var(--acc2);transition:transform .15s}
+input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.25)}
+input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;
+  background:#fff;border:2px solid var(--acc2);cursor:pointer}
+
+/* ================= workbench (right) ================= */
+#workbench{flex:1;min-width:0;display:flex;flex-direction:column;height:100vh}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:12px 18px;border-bottom:1px solid var(--line);flex-shrink:0;flex-wrap:wrap}
+.topbar h1{font-size:15px;font-weight:800;letter-spacing:.02em}
+.topbar h1 em{font-style:normal;color:var(--acc)}
+.topbar .hint{font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;color:var(--faint);text-transform:uppercase}
+
+#toolbar{display:flex;align-items:center;gap:8px;padding:8px 18px;border-bottom:1px solid var(--line);
+  flex-shrink:0;flex-wrap:wrap}
+#toolbar .t-label{font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;color:var(--dim);
+  text-transform:uppercase}
+#toolbar #fig-no{width:56px;padding:5px 7px;font-size:12px}
+#toolbar .btn{flex:0 0 auto;padding:6px 14px}
+
+#canvas-wrap{flex:1;min-height:0;position:relative;overflow:auto;display:flex;
+  align-items:center;justify-content:center;background:
+  radial-gradient(1200px 600px at 70% 20%,#0a1122 0%,var(--bg) 60%)}
+#plot-canvas{background:#fff;box-shadow:0 10px 40px rgba(0,0,0,.55);
+  max-width:100%;max-height:100%;width:auto;height:auto;display:block}
+
+#caption-row{padding:10px 18px 14px;border-top:1px solid var(--line);flex-shrink:0}
+#caption-row textarea{resize:vertical;font-family:Georgia,"Times New Roman",serif;
+  font-style:italic;font-size:12.5px;line-height:1.5;min-height:38px}
+#caption-row .c-label{font-family:var(--mono);font-size:9px;letter-spacing:.2em;color:var(--faint);
+  text-transform:uppercase;margin-bottom:6px}
+
+@media (max-width:720px){
+  #sidebar{width:min(340px,78vw)}
+  #sidebar.collapsed{margin-left:calc(-1 * min(340px,78vw))}
+  .topbar h1{font-size:13px}
+}
+</style>
+</head>
+<body>
+
+<!-- ================= left sidebar ================= -->
+<aside id="sidebar">
+  <div class="side-head">
+    <span class="eyebrow">Galactic Plotter</span>
+    <button id="btn-collapse" title="Collapse sidebar"
+      onclick="document.getElementById('sidebar').classList.add('collapsed');document.getElementById('btn-expand').classList.add('show')">«</button>
+  </div>
+  <div class="side-body">
+
+    <!-- ========== SELECTION ========== -->
+    <section class="sec">
+      <div class="sec-title">Selection</div>
+
+      <div class="f-group">
+        <input type="search" id="list-search" placeholder="Search name / alias…">
+        <div class="btn-row">
+          <button id="btn-all">Select all</button>
+          <button id="btn-clear">Clear</button>
+          <button id="btn-invert">Invert</button>
+        </div>
+      </div>
+
+      <div class="f-group">
+        <div class="f-label">Cluster list <output id="sel-count">0 / 176</output></div>
+        <div id="cluster-list"></div>
+      </div>
+
+      <div class="f-group">
+        <div class="f-label">Batch select</div>
+        <div class="batch-grid">
+          <div>
+            <div class="f-label">[Fe/H] lo</div>
+            <input type="number" id="batch-feh-lo" step="any" placeholder="-2.5">
+          </div>
+          <div>
+            <div class="f-label">[Fe/H] hi</div>
+            <input type="number" id="batch-feh-hi" step="any" placeholder="0.5">
+          </div>
+          <div>
+            <div class="f-label">R_gc ≤</div>
+            <input type="number" id="batch-rgc" step="any" placeholder="8">
+          </div>
+          <div>
+            <div class="f-label">M_V ≤</div>
+            <input type="number" id="batch-mv" step="any" placeholder="-7">
+          </div>
+        </div>
+        <button class="btn" id="btn-batch">Apply filter to selection</button>
+      </div>
+
+      <div class="f-group">
+        <div class="f-label">Preset groups</div>
+        <select id="preset-sel">
+          <option value="">— choose preset —</option>
+          <option value="messier">Messier</option>
+          <option value="bright15">Brightest 15</option>
+          <option value="disc">Disc (Rgc&lt;8)</option>
+          <option value="halo">Halo (Rgc≥8)</option>
+          <option value="rich">Metal-rich ([Fe/H]&gt;−1)</option>
+          <option value="poor">Metal-poor ([Fe/H]&lt;−1.5)</option>
+        </select>
+      </div>
+    </section>
+
+    <!-- ========== PLOT ========== -->
+    <section class="sec">
+      <div class="sec-title">Plot</div>
+
+      <div class="f-group">
+        <div class="f-label">Chart type</div>
+        <div class="seg" id="chart-type">
+          <button data-type="scatter" class="on">Scatter</button>
+          <button data-type="hist">Histogram</button>
+          <button data-type="line">Line</button>
+          <button data-type="heat">Heatmap</button>
+        </div>
+      </div>
+
+      <div class="f-group">
+        <div class="f-label">X axis</div>
+        <select id="x-param"></select>
+      </div>
+      <div class="f-group">
+        <div class="f-label">Y axis</div>
+        <select id="y-param"></select>
+      </div>
+      <div class="f-group">
+        <div class="f-label">Color by</div>
+        <select id="color-param"></select>
+      </div>
+      <div class="f-group">
+        <div class="f-label">Size by</div>
+        <select id="size-param"></select>
+      </div>
+
+      <div class="f-group">
+        <label class="tgl"><span>Color mode</span>
+          <input type="checkbox" id="color-mode"><span class="sw"></span>
+        </label>
+      </div>
+
+      <div class="f-group">
+        <div class="f-label">Bins <output id="bin-out">30</output></div>
+        <input type="range" id="bin-count" min="5" max="60" step="1" value="30"
+          oninput="document.getElementById('bin-out').textContent=this.value">
+      </div>
+
+      <div class="f-group">
+        <label class="tgl"><span>Log X</span>
+          <input type="checkbox" id="log-x"><span class="sw"></span>
+        </label>
+        <label class="tgl"><span>Log Y</span>
+          <input type="checkbox" id="log-y"><span class="sw"></span>
+        </label>
+        <label class="tgl"><span>Error bars</span>
+          <input type="checkbox" id="err-bars"><span class="sw"></span>
+        </label>
+      </div>
+
+      <div class="f-group">
+        <div class="f-label">Overlay group</div>
+        <select id="overlay-group">
+          <option value="none">None</option>
+          <option value="disc">Disc (Rgc&lt;8)</option>
+          <option value="halo">Halo (Rgc≥8)</option>
+          <option value="rich">Metal-rich</option>
+          <option value="poor">Metal-poor</option>
+        </select>
+      </div>
+
+      <div class="f-group">
+        <div class="f-label">Line mode</div>
+        <select id="line-mode">
+          <option value="cdf">CDF step</option>
+          <option value="line">Sorted line</option>
+          <option value="binned">Binned trend</option>
+        </select>
+      </div>
+
+      <div class="f-group">
+        <div class="f-label">Templates</div>
+        <div class="seg" id="templates">
+          <button data-i="0">R_gc vs [Fe/H]</button>
+          <button data-i="1">Metallicity</button>
+          <button data-i="2">Distance</button>
+          <button data-i="3">M_V vs Mass</button>
+          <button data-i="4">Eccentricity</button>
+          <button data-i="5">Peri vs Apo</button>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</aside>
+
+<!-- ================= workbench (right) ================= -->
+<main id="workbench">
+  <button id="btn-expand" title="Expand sidebar"
+    onclick="document.getElementById('sidebar').classList.remove('collapsed');this.classList.remove('show')">»</button>
+  <div class="topbar">
+    <h1>Milky Way Globular Cluster Atlas <em>— Plotter</em></h1>
+    <span class="hint">APJ-style figure workbench · 176 clusters</span>
+  </div>
+
+  <div id="toolbar">
+    <span class="t-label">Fig.</span>
+    <input type="number" id="fig-no" value="1" min="1">
+    <span style="flex:1"></span>
+    <button class="btn" id="btn-png">Export PNG</button>
+    <button class="btn" id="btn-svg">Export SVG</button>
+  </div>
+
+  <div id="canvas-wrap">
+    <canvas id="plot-canvas" width="1024" height="768"></canvas>
+  </div>
+
+  <div id="caption-row">
+    <div class="c-label">Caption</div>
+    <textarea id="caption-input" rows="2" spellcheck="false"
+      placeholder="Fig. 1.— Caption text (auto-generated, editable)."></textarea>
+  </div>
+</main>
+
+<!-- data first, then app -->
+<script src="../webdata/plotter_data.js"></script>
+<script src="plotter.js"></script>
+</body>
+</html>
