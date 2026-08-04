@@ -114,8 +114,8 @@ function buildArms() {
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
     g.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3));
-    const m = new THREE.PointsMaterial({ size: 0.7, map: tex, vertexColors: true,
-      transparent: true, opacity: 0.28, depthWrite: false,
+    const m = new THREE.PointsMaterial({ size: 0.6, map: tex, vertexColors: true,
+      transparent: true, opacity: 0.17, depthWrite: false,
       blending: THREE.AdditiveBlending, sizeAttenuation: true });
     armsGroup.add(new THREE.Points(g, m));
   });
@@ -133,8 +133,8 @@ function buildArms() {
   const hg = new THREE.BufferGeometry();
   hg.setAttribute('position', new THREE.Float32BufferAttribute(hpos, 3));
   hg.setAttribute('color', new THREE.Float32BufferAttribute(hcol, 3));
-  armsGroup.add(new THREE.Points(hg, new THREE.PointsMaterial({ size: 1.4, map: tex,
-    vertexColors: true, transparent: true, opacity: 0.5, depthWrite: false,
+  armsGroup.add(new THREE.Points(hg, new THREE.PointsMaterial({ size: 1.2, map: tex,
+    vertexColors: true, transparent: true, opacity: 0.35, depthWrite: false,
     blending: THREE.AdditiveBlending })));
 }
 buildArms();
@@ -162,8 +162,8 @@ function buildBar() {
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
   g.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3));
-  barGroup.add(new THREE.Points(g, new THREE.PointsMaterial({ size: 1.1, map: tex,
-    vertexColors: true, transparent: true, opacity: 0.38, depthWrite: false,
+  barGroup.add(new THREE.Points(g, new THREE.PointsMaterial({ size: 1.0, map: tex,
+    vertexColors: true, transparent: true, opacity: 0.24, depthWrite: false,
     blending: THREE.AdditiveBlending })));
   // 核球(bulge): 半径~2kpc 椭球暖光
   const bp = [], bc = [];
@@ -179,8 +179,8 @@ function buildBar() {
   const bg = new THREE.BufferGeometry();
   bg.setAttribute('position', new THREE.Float32BufferAttribute(bp, 3));
   bg.setAttribute('color', new THREE.Float32BufferAttribute(bc, 3));
-  barGroup.add(new THREE.Points(bg, new THREE.PointsMaterial({ size: 0.95, map: tex,
-    vertexColors: true, transparent: true, opacity: 0.3, depthWrite: false,
+  barGroup.add(new THREE.Points(bg, new THREE.PointsMaterial({ size: 0.85, map: tex,
+    vertexColors: true, transparent: true, opacity: 0.18, depthWrite: false,
     blending: THREE.AdditiveBlending })));
 }
 buildBar();
@@ -339,10 +339,36 @@ const pos = new Float32Array(N * 3), col = new Float32Array(N * 3),
 CL.forEach((c, i) => {
   const v = V(c.x || 0, c.y || 0, c.z || 0);
   pos[i*3] = v.x; pos[i*3+1] = v.y; pos[i*3+2] = v.z;
-  const m = c.MV == null ? -6 : c.MV;
-  siz[i] = 2.9 + Math.max(0, (-m - 3)) * 1.25;   // brighter -> bigger
   vis[i] = 1;
 });
+// 相对大小编码物理参数: M_V(光度) / Mass / r_h(物理半径) / Equal
+let sizeBy = 'mv';
+function computeSizes() {
+  for (let i = 0; i < N; i++) {
+    const c = CL[i];
+    let s;
+    switch (sizeBy) {
+      case 'mass': {                       // log10(M/M☉): 4 -> 1e4, 6.5 -> 3e6
+        const lg = c.mass != null ? Math.log10(c.mass) : 5;
+        s = 3.0 + Math.max(0, (lg - 4)) * 2.6;
+        break;
+      }
+      case 'rh': {                         // 半光半径 0-8 pc
+        const rh = c.rh != null ? Math.min(8, Math.max(0, c.rh)) : 2;
+        s = 3.0 + rh * 0.85;
+        break;
+      }
+      case 'equal': s = 5.2; break;
+      case 'mv':
+      default: {                           // M_V: -3(暗) -> -11(亮)
+        const m = c.MV == null ? -6 : c.MV;
+        s = 3.5 + Math.max(0, (-m - 3)) * 1.5;
+      }
+    }
+    siz[i] = s;
+  }
+  if (geo) geo.attributes.aSize.needsUpdate = true;
+}
 const geo = new THREE.BufferGeometry();
 geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
 geo.setAttribute('aColor', new THREE.BufferAttribute(col, 3));
@@ -351,6 +377,7 @@ geo.setAttribute('aVis', new THREE.BufferAttribute(vis, 1));
 // hover 高亮: 每点一个 0/1 标志, 配合放大+发光
 const hl = new Float32Array(N).fill(0);
 geo.setAttribute('aHl', new THREE.BufferAttribute(hl, 1));
+computeSizes();
 const ptsMat = new THREE.ShaderMaterial({
   transparent: true, depthWrite: true, blending: THREE.NormalBlending,
   uniforms: { uScale: { value: 1 } },
@@ -621,6 +648,11 @@ $('seg-color').addEventListener('click', e => {
   b.classList.add('on'); colorBy = b.dataset.v; refreshColors();
   updateLegend();
 });
+$('seg-size').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  [...$('seg-size').children].forEach(x => x.classList.remove('on'));
+  b.classList.add('on'); sizeBy = b.dataset.v; computeSizes();
+});
 $('r-feh-lo').oninput = e => { F.fehLo = +e.target.value; updFeh(); };
 $('r-feh-hi').oninput = e => { F.fehHi = +e.target.value; updFeh(); };
 function updFeh(){ $('o-feh').textContent = `${F.fehLo.toFixed(1)}…${F.fehHi.toFixed(1)}`; applyFilters(); }
@@ -687,11 +719,14 @@ function resetAll() {
   animateCam(controls.target.clone(), new THREE.Vector3(0, 0, 0),
              camera.position.clone(), new THREE.Vector3(26, 18, 34), 1200);
   controls.autoRotate = false; autoRot = false; $('btn-rot').classList.remove('on');
-  // 3. 着色回 FeH
+  // 3. 着色/大小回默认
   colorBy = 'feh';
   [...$('seg-color').children].forEach(x => x.classList.toggle('on', x.dataset.v === 'feh'));
   refreshColors();
   updateLegend();
+  sizeBy = 'mv';
+  [...$('seg-size').children].forEach(x => x.classList.toggle('on', x.dataset.v === 'mv'));
+  computeSizes();
   // 4. 筛选回默认
   F = { fehLo: -2.6, fehHi: 0.3, rgc: 130, mv: -3 };
   $('r-feh-lo').value = -2.6; $('r-feh-hi').value = 0.3;

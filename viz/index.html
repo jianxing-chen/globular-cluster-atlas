@@ -230,6 +230,15 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;
       </div>
     </div>
     <div class="f-group">
+      <div class="f-label">Size by</div>
+      <div class="seg" id="seg-size">
+        <button data-v="mv" class="on">M_V</button>
+        <button data-v="mass">Mass</button>
+        <button data-v="rh">r_h</button>
+        <button data-v="equal">Equal</button>
+      </div>
+    </div>
+    <div class="f-group">
       <div class="f-label">[Fe/H] range <output id="o-feh">all</output></div>
       <input type="range" id="r-feh-lo" min="-2.6" max="0.3" step="0.05" value="-2.6">
       <input type="range" id="r-feh-hi" min="-2.6" max="0.3" step="0.05" value="0.3" style="margin-top:5px">
