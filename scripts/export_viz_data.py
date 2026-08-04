@@ -1,13 +1,18 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""把主星表 + 轨道打包成 viz/gc_data.js (全局常量 GC_DATA), 供本地 file:// 直接打开。"""
+"""把主星表 + 轨道打包成 webdata/gc_data.js (全局常量 GC_DATA) 与
+webdata/plotter_data.js (全局常量 PLOTTER_DATA), 供本地 file:// 直接打开。
+
+plotter 数据不含 orbit.x/y/z 大数组; 轨道标量 (ecc/rperi/rapo/zmax/retro)
+平铺在星团对象上, 银河系银心笛卡尔坐标 x/y/z 保留。
+"""
 import os, json
 import numpy as np
 import pandas as pd
 
 PRO = os.path.join(os.path.dirname(__file__), "..", "data", "processed")
-VIZ = os.path.join(os.path.dirname(__file__), "..", "viz")
-os.makedirs(VIZ, exist_ok=True)
+WEB = os.path.join(os.path.dirname(__file__), "..", "webdata")
+os.makedirs(WEB, exist_ok=True)
 
 m = pd.read_pickle(os.path.join(PRO, "master.pkl"))
 orbits = json.load(open(os.path.join(PRO, "orbits.json")))["orbits"]
@@ -64,8 +69,25 @@ payload = {
     "clusters": clusters,
 }
 js = "const GC_DATA = " + json.dumps(payload, separators=(",", ":")) + ";\n"
-out = os.path.join(VIZ, "gc_data.js")
+out = os.path.join(WEB, "gc_data.js")
 with open(out, "w", encoding="utf-8") as f:
     f.write(js)
 print(f"写出 {out}  {os.path.getsize(out)/1024:.0f} KB, 星系数={len(clusters)}, "
       f"含轨道={payload['meta']['n_orbit']}")
+
+# ---- plotter 数据: 去掉 orbit 包装 (无 x/y/z 大数组), 轨道标量平铺到星团对象 ----
+plotter_clusters = []
+for c in clusters:
+    pc = {k: v for k, v in c.items() if k != "orbit"}
+    o = c["orbit"]
+    if o:
+        pc.update({"ecc": o["ecc"], "rperi": o["rperi"], "rapo": o["rapo"],
+                   "zmax": o["zmax"], "retro": o["retro"]})
+    plotter_clusters.append(pc)
+
+plotter_payload = {"meta": payload["meta"], "clusters": plotter_clusters}
+pjs = "const PLOTTER_DATA = " + json.dumps(plotter_payload, separators=(",", ":")) + ";\n"
+pout = os.path.join(WEB, "plotter_data.js")
+with open(pout, "w", encoding="utf-8") as f:
+    f.write(pjs)
+print(f"写出 {pout}  {os.path.getsize(pout)/1024:.0f} KB")

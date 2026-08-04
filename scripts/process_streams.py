@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-处理 galstreams 恒星流轨迹 -> 项目银心坐标, 导出 viz/streams_data.js
+处理 galstreams 恒星流轨迹 -> 项目银心坐标, 导出 webdata/streams_data.js
 数据: github.com/cmateu/galstreams (Mateu 2023, galstreams 库, 汇总 95+ 条恒星流)
 坐标: 与项目轨道积分完全相同的 IAU1958 银道变换 (ICRS -> 银心右手笛卡尔, +x 朝太阳)
 """
@@ -11,7 +11,8 @@ import pandas as pd
 
 TRACKS = "/tmp/galstreams/galstreams/tracks"
 PRO = os.path.join(os.path.dirname(__file__), "..", "data", "processed")
-VIZ = os.path.join(os.path.dirname(__file__), "..", "viz")
+WEB = os.path.join(os.path.dirname(__file__), "..", "webdata")
+os.makedirs(WEB, exist_ok=True)
 
 # ---------- 与 integrate_orbits.py 完全一致的银道变换 ----------
 RA_NGP  = math.radians(192.859508)
@@ -160,7 +161,7 @@ def main():
         "streams": streams,
     }
     js = "const STREAMS_DATA = " + json.dumps(payload, separators=(",",":")) + ";\n"
-    out = os.path.join(VIZ, "streams_data.js")
+    out = os.path.join(WEB, "streams_data.js")
     with open(out, "w") as fp: fp.write(js)
     print(f"写出 {out}  {os.path.getsize(out)/1024:.0f} KB")
     # 列出有祖源的流
