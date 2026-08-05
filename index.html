@@ -36,8 +36,9 @@ a:hover{text-decoration:underline}
 nav{position:sticky;top:0;z-index:50;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
   background:rgba(5,7,15,.72);border-bottom:1px solid var(--line)}
 nav .wrap{display:flex;align-items:center;justify-content:space-between;height:56px}
-nav .logo{font-family:var(--mono);font-size:12px;letter-spacing:.22em;color:var(--acc);text-transform:uppercase;display:flex;align-items:center;gap:8px}
+nav .logo{font-family:var(--mono);font-size:12px;letter-spacing:.22em;color:var(--acc);text-transform:uppercase;display:flex;align-items:center;gap:8px;text-decoration:none}
 nav .logo::before{content:"◍";color:var(--warm)}
+nav .logo:hover{text-decoration:none;color:var(--acc2)}
 nav .links{display:flex;gap:20px;font-family:var(--mono);font-size:11px;letter-spacing:.06em}
 nav .links a{color:var(--dim)}
 nav .links a:hover{color:var(--acc);text-decoration:none}
@@ -186,12 +187,12 @@ footer .lic{font-family:var(--mono);font-size:11px;color:var(--faint);letter-spa
 .disclaimer{font-size:11.5px;color:var(--faint);max-width:640px;margin:16px auto 0;line-height:1.7}
 </style>
 </head>
-<body>
+<body id="top">
 <div class="stars" id="stars"></div>
 
 <nav>
   <div class="wrap">
-    <div class="logo">GC Atlas</div>
+    <a class="logo" href="#top" title="Back to top">GC Atlas</a>
     <div class="links">
       <a href="#overview">Overview</a>
       <a href="#apps">Apps</a>
