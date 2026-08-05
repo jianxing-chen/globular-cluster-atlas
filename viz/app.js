@@ -44,11 +44,11 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x05070f);
 scene.fog = new THREE.FogExp2(0x05070f, 0.0032);
 
-const camera = new THREE.PerspectiveCamera(52, innerWidth / innerHeight, 0.1, 800);
+const camera = new THREE.PerspectiveCamera(52, innerWidth / innerHeight, 0.1, 8000);  // far 覆盖本星系群尺度(可达 M31 780kpc)
 camera.position.set(26, 18, 34);
 const controls = new THREE.OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true; controls.dampingFactor = 0.06;
-controls.minDistance = 0.5; controls.maxDistance = 400;
+controls.minDistance = 0.5; controls.maxDistance = 6000;   // 可拉到本星系群尺度(看 M31 卫星)
 
 // bloom 开关 -> 仅切换发光强度(用发光纹理实现, 无后处理依赖)
 let bloomOn = true;
@@ -285,6 +285,13 @@ const dwarfGroup = new THREE.Group(); dwarfGroup.visible = true; scene.add(dwarf
 const dwarfLabels = new THREE.Group(); dwarfLabels.visible = false; dwarfGroup.add(dwarfLabels);
 const DWARF_COLS = { mw: 0x9fb4ff, m31: 0xffb08a, field: 0x8adfC8, galaxy: 0xffd27f };
 const DWARF_OPACITY = { mw: 0.8, m31: 0.5, field: 0.4, galaxy: 0.85 };
+// 渲染参数: mw 用世界尺寸(近距), m31/field/galaxy 用固定屏幕尺寸(远距本星系群尺度可见)
+const DWARF_RENDER = {
+  mw:     { size: 1.4, atten: true,  op: 0.8 },
+  m31:    { size: 4.5, atten: false, op: 0.55 },
+  field:  { size: 3.0, atten: false, op: 0.45 },
+  galaxy: { size: 5.5, atten: false, op: 0.85 },
+};
 // 默认只显示 MW 矮星系(最重要); M31/field 用分类开关单独控制
 const dwarfClsVisible = { mw: true, m31: false, field: false, galaxy: true };
 function buildDwarfs() {
@@ -308,9 +315,10 @@ function buildDwarfs() {
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
     g.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3));
-    const m = new THREE.Points(g, new THREE.PointsMaterial({ size: 1.4, map: tex,
-      vertexColors: true, transparent: true, opacity: DWARF_OPACITY[d.cls] || 0.6,
-      depthWrite: false, blending: THREE.AdditiveBlending }));
+    const rnd = DWARF_RENDER[d.cls] || DWARF_RENDER.mw;
+    const m = new THREE.Points(g, new THREE.PointsMaterial({ size: rnd.size, map: tex,
+      vertexColors: true, transparent: true, opacity: rnd.op,
+      sizeAttenuation: rnd.atten, depthWrite: false, blending: THREE.AdditiveBlending }));
     m.userData.dwarf = d; m.userData.cls = d.cls;
     dwarfGroup.add(m);
     // 中心亮点
@@ -565,6 +573,17 @@ function updateOrbitVisibility() {
     line.visible = visArr[i] > 0.5;      // 筛选隐藏的星团, 其轨道也隐藏
   }
 }
+// 调试/验证钩子: 返回各类矮星系(以 Sprite core 的真实位置计)在相机视锥内的数量
+window.__dwarfProj = () => {
+  const out = { cam: [camera.position.x, camera.position.y, camera.position.z].map(v => +v.toFixed(0)) };
+  for (const o of dwarfGroup.children) {
+    if (!o.userData.cls || !o.isSprite) continue;   // 只统计 Sprite(core 有真实位置)
+    const v = o.position.clone().project(camera);
+    const inView = Math.abs(v.x) <= 1.3 && Math.abs(v.y) <= 1.3 && v.z < 1;
+    out[o.userData.cls] = (out[o.userData.cls] || 0) + (inView ? 1 : 0);
+  }
+  return out;
+};
 // 调试/验证钩子: 返回可见轨道数
 window.__orbitStats = () => {
   let vis = 0, total = 0;
@@ -861,8 +880,10 @@ $('t-streams').onchange = e => { streamsGroup.visible = e.target.checked;
   streamLabels.visible = e.target.checked && $('t-label').checked; };
 $('t-dwarf').onchange = e => { dwarfClsVisible.mw = e.target.checked;
   dwarfClsVisible.galaxy = e.target.checked; applyDwarfCls(); };
-$('t-dwarf-m31').onchange = e => { dwarfClsVisible.m31 = e.target.checked; applyDwarfCls(); };
-$('t-dwarf-field').onchange = e => { dwarfClsVisible.field = e.target.checked; applyDwarfCls(); };
+$('t-dwarf-m31').onchange = e => { dwarfClsVisible.m31 = e.target.checked; applyDwarfCls();
+  if (e.target.checked) zoomToLocalGroup(); };
+$('t-dwarf-field').onchange = e => { dwarfClsVisible.field = e.target.checked; applyDwarfCls();
+  if (e.target.checked) zoomToLocalGroup(); };
 $('t-disc').onchange = e => { disc.visible = e.target.checked; };
 $('t-ring').onchange = e => { ringGroup.visible = e.target.checked; };
 $('t-label').onchange = e => { labelGroup.visible = e.target.checked;
@@ -877,6 +898,24 @@ function flyTo(target, dist = null) {
   const d = dist != null ? dist : camera.position.distanceTo(controls.target);
   const toPos = t.clone().add(dir.multiplyScalar(d));
   animateCam(controls.target.clone(), t, camera.position.clone(), toPos, 1100);
+}
+// 拉到本星系群尺度: 相机距银心 ~2400 kpc, 可见 M31(780kpc) 与 Local Volume 矮星系(<3Mpc)
+function zoomToLocalGroup() {
+  flyTo(new THREE.Vector3(0, 0, 0), 2400);
+  scene.fog.density = 0.0005;                  // 减弱雾效, 否则远处天体被完全隐没
+  flashHint('Local Group scale — M31 at 780 kpc · M31 satellites & Local Volume dwarfs');
+}
+// 临时提示(4s 后恢复)
+let _hintTimer = null;
+function flashHint(msg) {
+  const h = $('hint');
+  h.innerHTML = msg;
+  h.style.opacity = 1;
+  clearTimeout(_hintTimer);
+  _hintTimer = setTimeout(() => {
+    h.innerHTML = 'drag to orbit &nbsp;·&nbsp; scroll to zoom &nbsp;·&nbsp; click a cluster &nbsp;·&nbsp; <b>R</b> reset &nbsp;·&nbsp; <b>Esc</b> back';
+    h.style.opacity = 0;
+  }, 4000);
 }
 function setView(name) {
   const T = new THREE.Vector3(0, 0, 0);
@@ -921,6 +960,7 @@ function resetAll() {
   animateCam(controls.target.clone(), new THREE.Vector3(0, 0, 0),
              camera.position.clone(), new THREE.Vector3(26, 18, 34), 1200);
   controls.autoRotate = false; autoRot = false; $('btn-rot').classList.remove('on');
+  scene.fog.density = 0.0032;                  // 恢复近视野雾效
   // 3. 着色/大小回默认
   colorBy = 'feh';
   [...$('seg-color').children].forEach(x => x.classList.toggle('on', x.dataset.v === 'feh'));
