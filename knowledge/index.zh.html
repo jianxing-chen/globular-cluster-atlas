@@ -28,10 +28,10 @@ nav{position:sticky;top:0;z-index:50;backdrop-filter:blur(14px);-webkit-backdrop
   background:rgba(5,7,15,.72);border-bottom:1px solid var(--line)}
 nav .wrap{display:flex;align-items:center;justify-content:space-between;height:56px}
 nav .nav-left{display:flex;align-items:center;gap:16px}
-nav .home-btn{display:inline-flex;align-items:center;gap:6px;text-decoration:none;
-  font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--acc);
-  background:rgba(120,160,255,.08);border:1px solid var(--line);border-radius:8px;
-  padding:5px 11px;transition:all .18s}
+nav .home-btn{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;
+  width:32px;height:32px;color:var(--acc);background:rgba(120,160,255,.08);
+  border:1px solid var(--line);border-radius:9px;transition:all .18s}
+nav .home-btn svg{width:15px;height:15px}
 nav .home-btn:hover{background:var(--acc2);color:#fff;border-color:var(--acc2)}
 nav .logo{font-family:var(--mono);font-size:12px;letter-spacing:.22em;color:var(--acc);text-transform:uppercase}
 nav .links{display:flex;gap:20px;font-family:var(--mono);font-size:11px;letter-spacing:.06em}
@@ -93,7 +93,9 @@ footer .lic{font-family:var(--mono);font-size:11px;color:var(--faint)}
 <nav>
   <div class="wrap">
     <div class="nav-left">
-      <a class="home-btn" href="../" title="返回主页">← 主页</a>
+      <a class="home-btn" href="../" title="返回主页" aria-label="返回主页">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M10 21v-6h4v6"/></svg>
+      </a>
       <div class="logo">球状星团图集 · 知识库</div>
     </div>
     <div class="links">
