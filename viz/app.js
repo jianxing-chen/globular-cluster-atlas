@@ -533,18 +533,21 @@ CL.forEach(c => {
 // ---------- orbits ----------
 const orbitGroup = new THREE.Group(); orbitGroup.visible = false; scene.add(orbitGroup);
 const orbitLines = {};
-// 用 CatmullRom 样条把折线点插值成平滑曲线 (n_out 目标采样数)
+// 用 CatmullRom 样条把折线点插值成平滑曲线
+// nOut 自适应: 轨道越长采样越密, 保证任何缩放级别下都丝滑无段落感
 function smoothOrbitPts(rawPts, nOut = 600) {
   if (rawPts.length < 4) return rawPts;
   const curve = new THREE.CatmullRomCurve3(rawPts, false, 'centripetal', 0.5);
-  return curve.getPoints(Math.max(nOut, rawPts.length * 2));
+  return curve.getPoints(Math.max(nOut, rawPts.length * 3));
 }
 
 function buildOrbit(c) {
   if (!c.orbit) return null;
   const o = c.orbit, raw = [];
   for (let i = 0; i < o.x.length; i++) raw.push(V(o.x[i], o.y[i], o.z[i]));
-  const pts = smoothOrbitPts(raw, 600);
+  // 按轨道远银心距自适应采样: 短轨道 2500 点, 长轨道(>30kpc)最多 6000 点
+  const nOut = Math.min(6000, Math.max(2500, Math.round((o.rapo || 30) * 90)));
+  const pts = smoothOrbitPts(raw, nOut);
   const g = new THREE.BufferGeometry().setFromPoints(pts);
   const colr = o.retro ? 0xff6a55 : 0x6fb7ff;
   const m = new THREE.LineBasicMaterial({ color: colr, transparent: true, opacity: 0.5 });
@@ -581,7 +584,7 @@ function showSelOrbit(c) {
   if (!c || !c.orbit) return;
   const o = c.orbit, raw = [];
   for (let i = 0; i < o.x.length; i++) raw.push(V(o.x[i], o.y[i], o.z[i]));
-  const pts = smoothOrbitPts(raw, 900);
+  const pts = smoothOrbitPts(raw, 5000);   // 选中轨道超密采样, 拉近也完全丝滑
   const g = new THREE.BufferGeometry().setFromPoints(pts);
   selOrbit = new THREE.Line(g, new THREE.LineBasicMaterial({ color: 0xffd27f, transparent: true, opacity: 0.95 }));
   scene.add(selOrbit);
