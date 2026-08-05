@@ -61,15 +61,15 @@ function makeDisc() {
   const c = document.createElement('canvas'); c.width = c.height = 512;
   const g = c.getContext('2d');
   const grd = g.createRadialGradient(256, 256, 0, 256, 256, 256);
-  grd.addColorStop(0.00, 'rgba(255,235,200,0.95)');
-  grd.addColorStop(0.12, 'rgba(255,215,160,0.55)');
-  grd.addColorStop(0.30, 'rgba(200,180,220,0.22)');
-  grd.addColorStop(0.60, 'rgba(120,140,220,0.08)');
+  grd.addColorStop(0.00, 'rgba(255,235,200,0.30)');   // 中心压低, 避免淹没轨道
+  grd.addColorStop(0.12, 'rgba(255,215,160,0.22)');
+  grd.addColorStop(0.30, 'rgba(200,180,220,0.12)');
+  grd.addColorStop(0.60, 'rgba(120,140,220,0.05)');
   grd.addColorStop(1.00, 'rgba(0,0,0,0)');
   g.fillStyle = grd; g.fillRect(0, 0, 512, 512);
   const tex = new THREE.CanvasTexture(c);
   const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false,
-    blending: THREE.AdditiveBlending, opacity: 0.9 });
+    blending: THREE.AdditiveBlending, opacity: 0.5 });
   const sp = new THREE.Sprite(mat);
   sp.scale.set(90, 34, 1);          // 扁盘
   sp.position.set(0, 0, 0);
@@ -77,7 +77,7 @@ function makeDisc() {
   // 让 sprite 平躺: 用 mesh 更稳 -> 改用平面贴图
   const geo = new THREE.PlaneGeometry(95, 95);
   const pmat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false,
-    blending: THREE.AdditiveBlending, side: THREE.DoubleSide, opacity: 0.45 });
+    blending: THREE.AdditiveBlending, side: THREE.DoubleSide, opacity: 0.24 });
   const plane = new THREE.Mesh(geo, pmat);
   plane.rotation.x = -Math.PI / 2;  // 躺到银道面
   return plane;
@@ -126,7 +126,7 @@ function buildArms() {
       const p = armPoint(a, b);
       // 沿臂宽度方向(offset)撒点 + 强度随半径包络
       const width = 0.55 * a.w + 0.03 * p.R;   // 臂半宽, 外臂略宽
-      const env = Math.exp(-Math.pow((p.R - 7) / 9, 2)); // 强度包络, 峰在太阳圈附近
+      const env = Math.exp(-Math.pow((p.R - 7) / 9, 2)) * Math.min(1, p.R / 3.2); // 强度包络, 峰在太阳圈附近, 内端(R<3.2kpc)线性抑制避免中心过亮
       const nHere = Math.max(2, Math.round(6 * a.I * env));
       for (let k = 0; k < nHere; k++) {
         const off = (Math.random() + Math.random() - 1) * width;  // 近似高斯横向偏移
@@ -168,6 +168,7 @@ function buildArms() {
 buildArms();
 
 // 中心棒 (Wegg+2015: 半长5kpc, 相对太阳-银心线偏28°) + 核球
+// 低亮度渲染: 点数减半 + opacity 大幅调低 + 单点强度减半, 避免加法混合中心过曝
 const barGroup = new THREE.Group(); scene.add(barGroup);
 function buildBar() {
   const tex = dotTexture(), pos = [], cols = [];
@@ -175,7 +176,7 @@ function buildBar() {
   const th = 208 * D2R;                          // 棒方位(近端在太阳对侧 -x, 偏28°)
   const ca = Math.cos(th), sa = Math.sin(th);
   const colr = new THREE.Color('#ffd9a8');
-  for (let i = 0; i < 5200; i++) {
+  for (let i = 0; i < 2400; i++) {
     // 沿棒长高斯分布
     let s = (Math.random() + Math.random() + Math.random() - 1.5) / 1.5;  // ~三角分布
     const along = s * L;
@@ -184,31 +185,31 @@ function buildBar() {
     const x = x0 * ca - y0 * sa, y = x0 * sa + y0 * ca;
     const z = (Math.random() - 0.5) * 0.5 * (1 - Math.abs(s) * 0.5);  // b/p 增厚
     pos.push(x, z, -y);
-    const I = (1 - Math.abs(s) * 0.7) * (0.5 + 0.5 * Math.random());
+    const I = (1 - Math.abs(s) * 0.7) * (0.22 + 0.28 * Math.random());
     cols.push(colr.r * I, colr.g * I, colr.b * I * 0.9);
   }
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
   g.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3));
-  barGroup.add(new THREE.Points(g, new THREE.PointsMaterial({ size: 1.0, map: tex,
-    vertexColors: true, transparent: true, opacity: 0.24, depthWrite: false,
+  barGroup.add(new THREE.Points(g, new THREE.PointsMaterial({ size: 0.7, map: tex,
+    vertexColors: true, transparent: true, opacity: 0.05, depthWrite: false,
     blending: THREE.AdditiveBlending })));
-  // 核球(bulge): 半径~2kpc 椭球暖光
+  // 核球(bulge): 半径~2kpc 椭球暖光, 低亮度
   const bp = [], bc = [];
-  for (let i = 0; i < 3400; i++) {
+  for (let i = 0; i < 1600; i++) {
     const r = Math.pow(Math.random(), 0.4) * 2.1;
     const u = Math.random() * Math.PI * 2, vphi = Math.acos(2 * Math.random() - 1);
     const x = r * Math.sin(vphi) * Math.cos(u), y = r * Math.sin(vphi) * Math.sin(u);
     const z = r * Math.cos(vphi) * 0.62;        // 垂直略压扁
     bp.push(x, z, -y);
-    const I = Math.max(0, 1 - r / 2.2) * (0.5 + 0.5 * Math.random());
+    const I = Math.max(0, 1 - r / 2.2) * (0.2 + 0.25 * Math.random());
     bc.push(1.0 * I, 0.82 * I, 0.6 * I);
   }
   const bg = new THREE.BufferGeometry();
   bg.setAttribute('position', new THREE.Float32BufferAttribute(bp, 3));
   bg.setAttribute('color', new THREE.Float32BufferAttribute(bc, 3));
-  barGroup.add(new THREE.Points(bg, new THREE.PointsMaterial({ size: 0.85, map: tex,
-    vertexColors: true, transparent: true, opacity: 0.18, depthWrite: false,
+  barGroup.add(new THREE.Points(bg, new THREE.PointsMaterial({ size: 0.55, map: tex,
+    vertexColors: true, transparent: true, opacity: 0.03, depthWrite: false,
     blending: THREE.AdditiveBlending })));
 }
 buildBar();
@@ -350,7 +351,7 @@ function star(color, size) {
     depthWrite: false, blending: THREE.AdditiveBlending }));
   s.scale.set(size, size, 1); return s;
 }
-const gc = star('rgba(255,225,170,1)', 7); gc.position.set(0, 0, 0); scene.add(gc);
+const gc = star('rgba(255,225,170,0.55)', 2.2); gc.position.set(0, 0, 0); scene.add(gc);
 const sun = star('rgba(150,200,255,1)', 2.6); sun.position.copy(V(RSUN, 0, 0)); scene.add(sun);
 
 // ---------- reference rings (R=4,8,12,16,20,30 kpc) ----------
