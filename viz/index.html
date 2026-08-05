@@ -33,6 +33,14 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--txt);
 #brand .sub{font-family:var(--mono);font-size:10.5px;color:var(--dim);margin-top:4px;letter-spacing:.05em}
 #brand .sub b{color:var(--warm);font-weight:600}
 
+/* ---------- 回主页按钮 ---------- */
+.home-btn{position:fixed;top:22px;left:26px;z-index:40;display:inline-flex;align-items:center;gap:6px;
+  font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-decoration:none;
+  color:var(--acc);background:rgba(13,19,38,.82);border:1px solid var(--line);
+  border-radius:9px;padding:6px 12px;backdrop-filter:blur(12px);transition:all .18s}
+.home-btn:hover{background:var(--acc2);color:#fff;border-color:var(--acc2)}
+#brand{top:68px}
+
 /* ---------- 左侧控制面板 ---------- */
 #panel{position:fixed;top:110px;left:22px;z-index:20;width:250px;
   background:var(--panel);border:1px solid var(--line);border-radius:14px;
@@ -225,6 +233,8 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;
 <div id="loader"><div class="ring"></div><div class="t">Assembling the halo…</div></div>
 
 <canvas id="scene"></canvas>
+
+<a class="home-btn" href="../" title="Back to home">← Home</a>
 
 <div id="brand">
   <div class="eyebrow">Galactic Halo Survey</div>

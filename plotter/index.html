@@ -131,6 +131,12 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;
 #workbench{flex:1;min-width:0;display:flex;flex-direction:column;height:100vh}
 .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;
   padding:12px 18px;border-bottom:1px solid var(--line);flex-shrink:0;flex-wrap:wrap}
+.topbar .tb-left{display:flex;align-items:center;gap:14px}
+.topbar .home-btn{display:inline-flex;align-items:center;gap:6px;text-decoration:none;
+  font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--acc);
+  background:rgba(120,160,255,.08);border:1px solid var(--line);border-radius:8px;
+  padding:5px 11px;transition:all .18s}
+.topbar .home-btn:hover{background:var(--acc2);color:#fff;border-color:var(--acc2)}
 .topbar h1{font-size:15px;font-weight:800;letter-spacing:.02em}
 .topbar h1 em{font-style:normal;color:var(--acc)}
 .topbar .hint{font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;color:var(--faint);text-transform:uppercase}
@@ -322,7 +328,10 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;
   <button id="btn-expand" title="Expand sidebar"
     onclick="document.getElementById('sidebar').classList.remove('collapsed');this.classList.remove('show')">»</button>
   <div class="topbar">
-    <h1>Milky Way Globular Cluster Atlas <em>— Plotter</em></h1>
+    <div class="tb-left">
+      <a class="home-btn" href="../" title="Back to home">← Home</a>
+      <h1>Milky Way Globular Cluster Atlas <em>— Plotter</em></h1>
+    </div>
     <span class="hint">APJ-style figure workbench · 176 clusters</span>
   </div>
 

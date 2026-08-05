@@ -27,6 +27,12 @@ a:hover{text-decoration:underline}
 nav{position:sticky;top:0;z-index:50;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
   background:rgba(5,7,15,.72);border-bottom:1px solid var(--line)}
 nav .wrap{display:flex;align-items:center;justify-content:space-between;height:56px}
+nav .nav-left{display:flex;align-items:center;gap:16px}
+nav .home-btn{display:inline-flex;align-items:center;gap:6px;text-decoration:none;
+  font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--acc);
+  background:rgba(120,160,255,.08);border:1px solid var(--line);border-radius:8px;
+  padding:5px 11px;transition:all .18s}
+nav .home-btn:hover{background:var(--acc2);color:#fff;border-color:var(--acc2)}
 nav .logo{font-family:var(--mono);font-size:12px;letter-spacing:.22em;color:var(--acc);text-transform:uppercase}
 nav .links{display:flex;gap:20px;font-family:var(--mono);font-size:11px;letter-spacing:.06em}
 nav .links a{color:var(--dim)}
@@ -86,7 +92,10 @@ footer .lic{font-family:var(--mono);font-size:11px;color:var(--faint)}
 
 <nav>
   <div class="wrap">
-    <div class="logo">球状星团图集 · 知识库</div>
+    <div class="nav-left">
+      <a class="home-btn" href="../" title="返回主页">← 主页</a>
+      <div class="logo">球状星团图集 · 知识库</div>
+    </div>
     <div class="links">
       <a href="#params">参数词典</a>
       <a href="#notable">特殊星团</a>
